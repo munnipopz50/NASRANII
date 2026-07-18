@@ -24,7 +24,7 @@ from pyrogram.raw.all import layer
 from database.ia_filterdb import Media, Media2, choose_mediaDB, db as clientDB
 from database.users_chats_db import db
 from info import SESSION, API_ID, API_HASH, BOT_TOKEN, LOG_STR, LOG_CHANNEL, SECONDDB_URI
-from utils import temp
+from utils import temp, get_poster
 from typing import Union, Optional, AsyncGenerator
 from pyrogram import types
 from Script import script 
@@ -54,21 +54,63 @@ async def stream_handler(request):
     if not file_id:
         return web.Response(text="Invalid File ID", status=400)
 
-    poster_url = "https://telegra.ph/file/b25f4625752187f58385e.jpg" 
+    # ഡിഫോൾട്ട് പോസ്റ്റർ ലിങ്ക് (IMDb ലഭിച്ചില്ലെങ്കിൽ കാണിക്കാൻ)
+    poster_url = "https://telegra.ph/file/fcc849db4bf5c517f0f8d.jpg" 
+    movie_title = "Nasrani Movies"
+    movie_info = "" # IMDb വിവരങ്ങൾ കാണിക്കാൻ
+
     try:
         from database.ia_filterdb import get_file_details
+        # 💡 ശ്രദ്ധിക്കുക: നിങ്ങളുടെ ബോട്ട് കോഡിൽ get_poster എവിടെ നിന്നാണോ ഇമ്പോർട്ട് ചെയ്തിരിക്കുന്നത് ആ പാത്ത് ഇവിടെ നൽകുക
+        # ഉദാഹരണത്തിന്: from utils import get_poster അല്ലെങ്കിൽ from plugins.helper.imdb import get_poster
+        from utils import get_poster 
+        
         files_ = await get_file_details(file_id)
-        if files_ and files_[0].caption:
-            match = re.search(r'(https?://[^\s]+(?:jpg|jpeg|png))', files_[0].caption)
-            if match:
-                poster_url = match.group(1)
-    except:
-        pass
+        if files_:
+            file_name = files_[0].file_name
+            # ഫയൽ നെയിമിൽ നിന്നുള്ള ഡോട്ടുകൾ മാറ്റി ക്ലീൻ ആയ ഒരു സെർച്ച് ക്വറി ഉണ്ടാക്കുന്നു
+            search_query = file_name.replace(".", " ").split("(")[0].strip()
+            
+            # 🎬 IMDb-യിൽ നിന്ന് പോസ്റ്ററും ഡീറ്റെയിൽസും ഫെച്ച് ചെയ്യുന്നു
+            imdb = await get_poster(search_query, file=file_name)
+            
+            if imdb:
+                # IMDb-യിൽ നിന്ന് ലഭിക്കുന്ന പോസ്റ്റർ യുആർഎൽ സെറ്റ് ചെയ്യുന്നു
+                poster_url = imdb.get("poster") or imdb.get("image") or poster_url
+                f_title = imdb.get("title", search_query)
+                f_genres = imdb.get("genres", "N/A")
+                f_year = imdb.get("year", "N/A")
+                f_rating = imdb.get("rating", "N/A")
+                
+                movie_title = f_title
+                # വെബ് പേജിൽ കാണിക്കാൻ വേണ്ടിയുള്ള എച്ച്ടിഎംഎൽ കോഡ്
+                movie_info = f"""
+                <div class="movie-meta">
+                    <p><strong>🎭 Genres:</strong> {f_genres}</p>
+                    <p><strong>📆 Year:</strong> {f_year} | <strong>🌟 Rating:</strong> {f_rating} / 10</p>
+                </div>
+                """
+            else:
+                # IMDb ഡീറ്റെയിൽസ് കിട്ടിയില്ലെങ്കിൽ പഴയപോലെ ക്യാപ്ഷൻ ചെക്ക് ചെയ്യും
+                if files_[0].caption:
+                    match = re.search(r'(https?://[^\s]+(?:jpg|jpeg|png))', files_[0].caption)
+                    if match:
+                        poster_url = match.group(1)
+    except Exception as e:
+        print(f"IMDb Web Player Error: {e}")
+        # എന്തെങ്കിലും എറർ ഉണ്ടായാൽ ബാക്കപ്പ് ആയി പഴയ ക്യാപ്ഷൻ ലോജിക് വർക്ക് ചെയ്യും
+        try:
+            if files_ and files_[0].caption:
+                match = re.search(r'(https?://[^\s]+(?:jpg|jpeg|png))', files_[0].caption)
+                if match:
+                    poster_url = match.group(1)
+        except:
+            pass
 
     host = request.headers.get('Host', '')
     protocol = "https" if request.secure or request.headers.get('X-Forwarded-Proto', '') == 'https' else "http"
     local_download_url = f"{protocol}://{host}/download_file/{file_id}"
-    bot_link = "https://t.me/your_bot_username" # ഇവിടെ ലിങ്ക് മാറ്റുക
+    bot_link = "https://t.me/your_bot_username" # ഇവിടെ നിങ്ങളുടെ ബോട്ട് ലിങ്ക് മാറ്റുക
 
     html_content = f"""
     <!DOCTYPE html>
@@ -76,39 +118,43 @@ async def stream_handler(request):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Nasrani Bot Web Player</title>
+        <title>{movie_title} - Web Player</title>
         <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
         <style>
             body {{ margin: 0; padding: 20px; background-color: #ffffff; color: #000000; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }}
-            .header {{ text-align: center; margin-bottom: 20px; }}
-            /* Neon Stylish Font Header */
+            .header {{ text-align: center; margin-bottom: 20px; width: 100%; }}
             .header h1 {{ 
                 margin: 0; 
                 font-family: 'Lobster', cursive; 
-                font-size: 40px; 
+                font-size: 35px; 
                 color: #fff;
                 text-transform: uppercase;
                 text-shadow: 0 0 5px #ff00de, 0 0 10px #ff00de, 0 0 20px #ff00de, 0 0 40px #ff00de;
                 animation: neon 1.5s infinite alternate;
+                word-wrap: break-word;
+                padding: 0 10px;
             }}
             @keyframes neon {{
                 from {{ text-shadow: 0 0 5px #ff00de, 0 0 10px #ff00de, 0 0 20px #ff00de; }}
                 to {{ text-shadow: 0 0 10px #00d2ff, 0 0 20px #00d2ff, 0 0 30px #00d2ff; }}
             }}
-            .header a {{ color: #555; text-decoration: none; font-weight: bold; font-size: 18px; display: block; margin-top: 10px; }}
+            .header a {{ color: #555; text-decoration: none; font-weight: bold; font-size: 16px; display: block; margin-top: 10px; }}
             .player-container {{ width: 90%; max-width: 600px; background: #f8f9fa; padding: 20px; border-radius: 15px; box-shadow: 0px 4px 15px rgba(0,0,0,0.1); text-align: center; }}
-            img {{ width: 200px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0px 4px 10px rgba(0,0,0,0.2); }}
-            video {{ width: 100%; background: #000; border-radius: 8px; }}
+            img {{ width: 180px; height: auto; border-radius: 10px; margin-bottom: 15px; box-shadow: 0px 4px 10px rgba(0,0,0,0.2); object-fit: cover; }}
+            video {{ width: 100%; background: #000; border-radius: 8px; margin-top: 10px; }}
+            .movie-meta {{ background: #eaeaea; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; text-align: center; line-height: 1.5; }}
+            .movie-meta p {{ margin: 5px 0; }}
             .download-btn {{ display: inline-block; background-color: #00c853; color: white; padding: 12px 30px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 25px; margin-top: 20px; }}
         </style>
     </head>
     <body>
         <div class="header">
-            <h1>Nasrani Movies</h1>
+            <h1>{movie_title}</h1>
             <a href="{bot_link}" target="_blank">🤖 Click Here to Join Nasrani BOT</a>
         </div>
         <div class="player-container">
             <img src="{poster_url}" alt="Movie Poster">
+            {movie_info}
             <video controls autoplay preload="auto" playsinline>
                 <source src="{local_download_url}" type="video/mp4">
             </video>
@@ -118,8 +164,11 @@ async def stream_handler(request):
     </body>
     </html>
     """
-    return web.Response(text=html_content, content_type='text/html')
-    
+    return web.Response(text=html_content, content_type='text/html') 
+ 
+
+
+
 
 # 📥 [ADVANCED STREAM ENGINE WITH RANGE & TOTAL SIZE SUPPORT]
 # 📥 [FAST STREAM ENGINE WITH FIXED PYROGRAM CHUNK CONTROLLER FOR SEEKING]
