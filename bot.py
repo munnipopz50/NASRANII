@@ -50,9 +50,12 @@ import asyncio
 # 📺 വെബ്‌സൈറ്റിൽ പ്ലേ ചെയ്യാനും നേരിട്ട് ഡൗൺലോഡ് ചെയ്യാനുമുള്ള HTML പ്ലെയർ പേജ്
 import re
 import math
+import urllib.parse  # 💡 ലിങ്ക് എൻകോഡ് ചെയ്യാൻ ഇത് വേണം
 from aiohttp import web
 
 PORT = int(os.environ.get("PORT", 8080))
+
+
 
 
 
@@ -126,11 +129,13 @@ async def stream_handler(request):
     protocol = "https" if request.secure or request.headers.get('X-Forwarded-Proto', '') == 'https' else "http"
     local_download_url = f"{protocol}://{host}/download_file/{file_id}"
     
-    # External Player links
-    vlc_url = f"vlc://{local_download_url.replace('https://', '').replace('http://', '')}"
-    mx_url = f"intent:{local_download_url}#Intent;package=com.mxtech.videoplayer.ad;end"
+    # 🛠️ MX Player-ന് വേണ്ടിയുള്ള ശരിയായ ആൻഡ്രോയിഡ് ഇന്റന്റ് ഘടന (Intent Syntax)
+    mx_url = f"intent:{local_download_url}#Intent;package=com.mxtech.videoplayer.ad;S.title={urllib.parse.quote(display_name)};end"
     
-    bot_link = "https://t.me/your_bot_username" # 🤖 ഇവിടെ ബോട്ട് യൂസർനെയിം മാറ്റുക
+    # 🛠️ VLC Player-ന് വേണ്ടിയുള്ള ശരിയായ ലിങ്ക് ഘടന
+    vlc_url = f"vlc://{local_download_url}"
+    
+    bot_link = "https://t.me/your_bot_username" 
 
     html_content = f"""
     <!DOCTYPE html>
@@ -144,15 +149,8 @@ async def stream_handler(request):
             body {{ margin: 0; padding: 20px; background-color: #141414; color: #ffffff; font-family: 'Poppins', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }}
             .header {{ text-align: center; margin-bottom: 20px; width: 100%; }}
             .header h1 {{ 
-                margin: 0; 
-                font-family: 'Lobster', cursive; 
-                font-size: 38px; 
-                color: #fff;
-                text-transform: uppercase;
-                text-shadow: 0 0 5px #ff00de, 0 0 10px #ff00de, 0 0 20px #ff00de;
-                animation: neon 1.5s infinite alternate;
-                word-wrap: break-word;
-                padding: 0 10px;
+                margin: 0; font-family: 'Lobster', cursive; font-size: 38px; color: #fff; text-transform: uppercase;
+                text-shadow: 0 0 5px #ff00de, 0 0 10px #ff00de, 0 0 20px #ff00de; animation: neon 1.5s infinite alternate; word-wrap: break-word; padding: 0 10px;
             }}
             @keyframes neon {{
                 from {{ text-shadow: 0 0 5px #ff00de, 0 0 10px #ff00de, 0 0 20px #ff00de; }}
@@ -161,6 +159,8 @@ async def stream_handler(request):
             .header a {{ color: #00d2ff; text-decoration: none; font-weight: bold; font-size: 16px; display: block; margin-top: 10px; }}
             .player-container {{ width: 95%; max-width: 650px; background: #1f1f1f; padding: 25px; border-radius: 15px; box-shadow: 0px 8px 25px rgba(0,0,0,0.5); text-align: center; box-sizing: border-box; }}
             .poster-img {{ width: 100%; max-width: 220px; height: 320px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0px 5px 15px rgba(0,0,0,0.6); object-fit: cover; border: 2px solid #333; }}
+            
+            /* 📺 വീഡിയോ കൺട്രോളുകൾ */
             video {{ width: 100%; background: #000; border-radius: 10px; margin-top: 15px; border: 1px solid #444; }}
             
             .file-details {{ background: #292929; padding: 15px; border-radius: 10px; text-align: left; margin-bottom: 15px; font-size: 14px; border-left: 4px solid #ff00de; }}
@@ -170,7 +170,6 @@ async def stream_handler(request):
             .movie-meta {{ background: #292929; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; text-align: center; border-left: 4px solid #00d2ff; }}
             .movie-meta p {{ margin: 5px 0; }}
             
-            /* 🕹️ ആപ്പ് പ്ലെയർ ബട്ടണുകളുടെ പുതിയ സ്ഥാനം (ഡൗൺലോഡിന് മുകളിൽ) */
             .apps-container {{ display: flex; justify-content: space-around; gap: 10px; margin: 20px 0 10px 0; flex-wrap: wrap; }}
             .app-btn {{ flex: 1; min-width: 140px; padding: 12px; font-weight: bold; text-decoration: none; border-radius: 8px; font-size: 14px; color: white; transition: 0.2s; text-align: center; display: inline-flex; align-items: center; justify-content: center; }}
             .vlc-btn {{ background-color: #ff8800; box-shadow: 0 4px 10px rgba(255,136,0,0.3); }}
@@ -197,26 +196,27 @@ async def stream_handler(request):
 
             {movie_info}
             
-            <!-- ഇൻ-ബിൽറ്റ് പ്ലെയർ നിലവിലുള്ളതുപോലെ -->
-            <video controls autoplay preload="auto" playsinline>
+            <!-- 📺 വീഡിയോ പ്ലെയർ: അടിച്ചുവിടുമ്പോൾ കറക്കം മാറാൻ (preload="none" മാറ്റി ആവശ്യാനുസരണം ലോഡ് ചെയ്യാൻ ക്രമീകരിച്ചു) -->
+            <video controls autoplay playsinline>
                 <source src="{local_download_url}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
 
-            <!-- 📱 പ്ലെയറിന് താഴെയും ഡൗൺലോഡ് ബട്ടന് മുകളിലുമായി ആപ്പ് ബട്ടണുകൾ -->
+            <!-- 📱 ആപ്പ് ബട്ടണുകൾ -->
             <div class="apps-container">
                 <a href="{vlc_url}" class="app-btn vlc-btn">🧡 Watch in VLC</a>
                 <a href="{mx_url}" class="app-btn mx-btn">💙 Watch in MX Player</a>
             </div>
             
-            <!-- ഫസ്റ്റ് ഡൗൺലോഡ് ബട്ടൺ -->
             <a href="{local_download_url}" class="download-btn" download>📥 Fast Download File</a>
         </div>
     </body>
     </html>
     """
     return web.Response(text=html_content, content_type='text/html')
-
+            
+        
+        
 
 
 
