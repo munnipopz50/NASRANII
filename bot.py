@@ -210,21 +210,38 @@ async def start_jrma_server():
     logging.info(f"🚀 JustRunMy.App Web Server active via HTTPS on Port {PORT}")
 
 
-# 🔄 Render-ൽ ബോട്ട് എപ്പോഴും ഓൺ ആയിരിക്കാൻ 5 മിനിറ്റ് കൂടുമ്പോൾ പിങ് ചെയ്യാനുള്ള ലോജിക്
-async def send_ping():
+# 🔄 # 🔄 Render-ൽ ബോട്ട് എപ്പോഴും ഓൺ ആയിരിക്കാൻ 5 മിനിറ്റ് കൂടുമ്പോൾ പിങ് ചെയ്യാനുള്ള ലോജിക്
+async def send_ping(client):
     await asyncio.sleep(60) # സെർവർ ഓൺ ആകാൻ 1 മിനിറ്റ് കാത്തിരിക്കുന്നു
     while True:
         try:
-            # 💡 പുറത്തുള്ള ലിങ്കിന് പകരം സെർവറിനുള്ളിൽ തന്നെ നേരിട്ട് പിങ് ചെയ്യുന്നു
             local_url = f"http://localhost:{PORT}"
             response = requests.get(local_url, timeout=30)
             
-            # 💡 ലോബിൽ കൃത്യമായി കാണാൻ വേണ്ടി പ്രിന്റ് സ്റ്റേറ്റ്മെന്റ് മാറ്റിയിട്ടുണ്ട്
+            # കൺസോൾ ലോബിലേക്ക്
             print(f"🟢 [PING SYSTEM] Self-Ping Successful: Status Code {response.status_code}", flush=True)
-            logging.info(f"🟢 Self-Ping Successful: Status Code {response.status_code}")
+            
+            # 📢 ടെലിഗ്രാം LOG_CHANNEL-ലേക്ക് മെസ്സേജ് അയക്കുന്നു
+            try:
+                await client.send_message(
+                    chat_id=LOG_CHANNEL, 
+                    text=f"🟢 **Self-Ping Successful**\nStatus Code: `{response.status_code}`\nTime: `{datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')}`"
+                )
+            except Exception as tg_err:
+                logging.error(f"Telegram Ping Log Failed: {tg_err}")
+                
         except Exception as e:
             print(f"🔴 [PING SYSTEM] Self-Ping Failed: {e}", flush=True)
-            logging.error(f"🔴 Self-Ping Failed: {e}")
+            
+            # 📢 പരാജയപ്പെട്ടാൽ ചാനലിലേക്ക് അലേർട്ട് അയക്കുന്നു
+            try:
+                await client.send_message(
+                    chat_id=LOG_CHANNEL, 
+                    text=f"🔴 **Self-Ping Failed**\nError: `{e}`"
+                )
+            except:
+                pass
+                
         await asyncio.sleep(300) # 5 മിനിറ്റ് ഇടവേള
 
 
@@ -252,7 +269,7 @@ class Bot(Client):
         await start_jrma_server()
         
         # 🔄 ഇവിടെ നമ്മൾ പിങ് ടാസ്ക് ബാക്ക്ഗ്രൗണ്ടിൽ സ്റ്റാർട്ട് ചെയ്യുന്നു
-        asyncio.create_task(send_ping())
+        asyncio.create_task(send_ping(self))
 
         stats = await clientDB.command('dbStats')
         free_dbSize = round(512-((stats['dataSize']/(1024*1024))+(stats['indexSize']/(1024*1024))), 2)
