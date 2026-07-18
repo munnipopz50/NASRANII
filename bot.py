@@ -44,10 +44,10 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiohttp import web
 import os
 import re
+import asyncio
 
 PORT = int(os.environ.get("PORT", 8080))
 
-# 📺 വെബ്‌സൈറ്റിൽ പ്ലേ ചെയ്യാനും നേരിട്ട് ഡൗൺലോഡ് ചെയ്യാനുമുള്ള HTML പ്ലെയർ പേജ്
 # 📺 വെബ്‌സൈറ്റിൽ പ്ലേ ചെയ്യാനും നേരിട്ട് ഡൗൺലോഡ് ചെയ്യാനുമുള്ള HTML പ്ലെയർ പേജ്
 async def stream_handler(request):
     file_id = request.match_info.get('file_id')
@@ -168,7 +168,7 @@ async def download_file_handler(request):
                 async for chunk in app.stream_media(file_id, offset=start):
                     try:
                         await response.write(chunk)
-                    except (鼻, ConnectionResetError, BrokenPipeError):
+                    except (ConnectionResetError, BrokenPipeError):
                         break # ബ്രൗസർ കണക്ഷൻ നിർത്തിയാൽ ഉടൻ പൈത്തൺ കോഡും സ്റ്റോപ്പ് ചെയ്യും
                 return response
 
@@ -187,9 +187,6 @@ async def download_file_handler(request):
     except Exception as e:
         logging.error(f"Streaming Engine Error: {e}")
         return web.Response(text="Error playing file.", status=500)
-
-
-
 
 
 # 🌐 മെയിൻ ലിങ്ക് പേജ്
@@ -211,6 +208,20 @@ async def start_jrma_server():
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
     logging.info(f"🚀 JustRunMy.App Web Server active via HTTPS on Port {PORT}")
+
+
+# 🔄 Render-ൽ ബോട്ട് എപ്പോഴും ഓൺ ആയിരിക്കാൻ 10 മിനിറ്റ് കൂടുമ്പോൾ പിങ് ചെയ്യാനുള്ള ലോജിക്
+async def send_ping():
+    await asyncio.sleep(20) # സെർവർ പൂർണ്ണമായി സ്റ്റാർട്ട് ആകാൻ കാത്തിരിക്കുന്നു
+    while True:
+        try:
+            # ⚠️ താഴെയുള്ള ലിങ്ക് മാറ്റി നിങ്ങളുടെ Render വെബ്‌സൈറ്റ് ലിങ്ക് നൽകുക
+            render_url = "https://your-bot.onrender.com" 
+            response = requests.get(render_url, timeout=10)
+            logging.info(f"🟢 Self-Ping Successful: Status Code {response.status_code}")
+        except Exception as e:
+            logging.error(f"🔴 Self-Ping Failed: {e}")
+        await asyncio.sleep(600) # 10 മിനിറ്റ് (600 സെക്കൻഡ്) ഇടവേള
 
 
 class Bot(Client):
@@ -235,6 +246,9 @@ class Bot(Client):
         await Media2.ensure_indexes()
         
         await start_jrma_server()
+        
+        # 🔄 ഇവിടെ നമ്മൾ പിങ് ടാസ്ക് ബാക്ക്ഗ്രൗണ്ടിൽ സ്റ്റാർട്ട് ചെയ്യുന്നു
+        asyncio.create_task(send_ping())
 
         stats = await clientDB.command('dbStats')
         free_dbSize = round(512-((stats['dataSize']/(1024*1024))+(stats['indexSize']/(1024*1024))), 2)
@@ -258,9 +272,9 @@ class Bot(Client):
         tz = pytz.timezone('Asia/Kolkata')
         today = date.today()
         now = datetime.now(tz)
-        time = now.strftime("%H:%M:%S %p")
-        await self.send_message(chat_id=LOG_CHANNEL, text=script.RESTART_TXT.format(today, time))
-#
+        custom_time = now.strftime("%H:%M:%S %p")
+        await self.send_message(chat_id=LOG_CHANNEL, text=script.RESTART_TXT.format(today, custom_time))
+
     async def stop(self, *args):
         await super().stop()
         logging.info("Bot stopped. Bye.")
