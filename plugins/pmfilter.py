@@ -2140,7 +2140,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     imdb = await get_poster(content) if IMDB else None
                     
 #                    poster_encoded = urllib.parse.quote(poster)
-                    JRMA_URL = "https://nasranibot-c53.e.jrnm.app"
+                    JRMA_URL = SHORTLINK_URL
                     stream_link = f"{JRMA_URL}/watch/{file_id}"
 
                     print("STEP 3")
@@ -2175,8 +2175,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
                             [
                                 [
                                     InlineKeyboardButton(
-                                        f"👍 {like_count}",
-                                        callback_data=f"vlike_{file_id}"
+                                        f"STREAM",
+                                        url = "stream_link"
                                     )
                                 ],                                
                                 [
@@ -3606,7 +3606,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # നിങ്ങളുടെ JRMA ഡൊമെയ്ൻ വെച്ച് സ്ട്രീം ലിങ്ക് ജനറേറ്റ് ചെയ്യുന്നു
         import urllib.parse
         poster_encoded = urllib.parse.quote(poster)
-        JRMA_URL = "https://nasranibot-c53.e.jrnm.app"
+        JRMA_URL = SHORTLINK_URL
         stream_link = f"{JRMA_URL}/watch/{file_id}"
 
         # 📝 [CUSTOM CAPTION - WITH SPACES]
