@@ -60,7 +60,8 @@ IMDB_API_BASE = "https://www.omdbapi.com/"
 
 HTTP_TIMEOUT = 10
 
-imdb = Cinemagoer()
+imdb = Cinemagoer(accessSystem='s3', uri='sqlite:///cinemagoer.db')
+# imdb = Cinemagoer()
 TOKENS = {}
 VERIFIED = {}
 BANNED = {}
