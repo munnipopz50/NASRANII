@@ -212,14 +212,18 @@ async def start_jrma_server():
 
 # 🔄 Render-ൽ ബോട്ട് എപ്പോഴും ഓൺ ആയിരിക്കാൻ 5 മിനിറ്റ് കൂടുമ്പോൾ പിങ് ചെയ്യാനുള്ള ലോജിക്
 async def send_ping():
-    await asyncio.sleep(120) # 💡 സെർവർ പൂർണ്ണമായി ബൂട്ട് ആകാൻ 2 മിനിറ്റ് കാത്തിരിക്കുന്നു
+    await asyncio.sleep(60) # സെർവർ ഓൺ ആകാൻ 1 മിനിറ്റ് കാത്തിരിക്കുന്നു
     while True:
         try:
-            render_url = "https://nasranii.onrender.com" 
-            # 💡 timeout=60 ആക്കി മാറ്റി, സെർവറിന് മറുപടി നൽകാൻ കൂടുതൽ സമയം നൽകുന്നു
-            response = requests.get(render_url, timeout=60) 
+            # 💡 പുറത്തുള്ള ലിങ്കിന് പകരം സെർവറിനുള്ളിൽ തന്നെ നേരിട്ട് പിങ് ചെയ്യുന്നു
+            local_url = f"http://localhost:{PORT}"
+            response = requests.get(local_url, timeout=30)
+            
+            # 💡 ലോബിൽ കൃത്യമായി കാണാൻ വേണ്ടി പ്രിന്റ് സ്റ്റേറ്റ്മെന്റ് മാറ്റിയിട്ടുണ്ട്
+            print(f"🟢 [PING SYSTEM] Self-Ping Successful: Status Code {response.status_code}", flush=True)
             logging.info(f"🟢 Self-Ping Successful: Status Code {response.status_code}")
         except Exception as e:
+            print(f"🔴 [PING SYSTEM] Self-Ping Failed: {e}", flush=True)
             logging.error(f"🔴 Self-Ping Failed: {e}")
         await asyncio.sleep(300) # 5 മിനിറ്റ് ഇടവേള
 
