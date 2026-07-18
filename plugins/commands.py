@@ -219,7 +219,7 @@ async def start(client, message):
                     return await message.reply('<b>❌ No such file exist in database.</b>')
                 
                 files = files_[0]
-                JRMA_URL = "https://nasranibot-c53.e.jrnm.app"
+                JRMA_URL = SHORTLINK_URL
                 g = f"{JRMA_URL}/watch/{file_id}"
 #                g = await get_shortlink(chat_id, f"https://telegram.me/{temp.U_NAME}?start=file_{file_id}")
                 print(f"[DEBUG] 🔗 Generated Shortlink: {g}")
@@ -475,7 +475,7 @@ async def start(client, message):
     if data.startswith("sendfiles"):
         chat_id = int("-" + file_id.split("-")[1])
         userid = message.from_user.id if message.from_user else None
-        JRMA_URL = "https://nasranii.onrender.com"
+        JRMA_URL = SHORTLINK_URL
         g = f"{JRMA_URL}/watch/{file_id}"
 #        g = await get_shortlink(chat_id, f"https://telegram.me/{temp.U_NAME}?start=allfiles_{file_id}")
         k = await client.send_message(chat_id=message.from_user.id,text=f"<b>Get All Files in a Single Click!!!\n\n<i>Note: This message is deleted in 5 mins to avoid copyrights. Save the link to Somewhere else</i></b>", reply_markup=InlineKeyboardMarkup(
@@ -499,7 +499,7 @@ async def start(client, message):
         files_ = await get_file_details(file_id)
         files = files_[0]
 #        g = await get_shortlink(chat_id, f"https://telegram.me/{temp.U_NAME}?start=file_{file_id}")
-        JRMA_URL = "https://nasranii.onrender.com"
+        JRMA_URL = SHORTLINK_URL
         g = f"{JRMA_URL}/watch/{file_id}"
         k = await client.send_message(chat_id=user,text=f"<b>📕Nᴀᴍᴇ ➠ : <code>{files.file_name}</code> \n\n🔗Sɪᴢᴇ ➠ : {get_size(files.file_size)}\n\n<i>Note: This message is deleted in 20 mins to avoid copyrights. Save the link to Somewhere else</i></b>", reply_markup=InlineKeyboardMarkup(
                 [
