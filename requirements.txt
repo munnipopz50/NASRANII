@@ -70,4 +70,5 @@ rapidfuzz
 
 pyspellchecker
 google-generativeai
-g4f
+g4ഫുൾ
+SQLAlchemy==1.4.46
