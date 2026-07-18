@@ -2132,6 +2132,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
                 if clicked == typed:
                     print("STEP 1")
+#                    poster_encoded = urllib.parse.quote(poster)
+                    JRMA_URL = SHORTLINK_URL
+                    stream_link = f"{JRMA_URL}/watch/{file_id}"
 
                     content = query.message.reply_to_message.text
 
@@ -2139,9 +2142,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 #                    import urllib.parse
                     imdb = await get_poster(content) if IMDB else None
                     
-#                    poster_encoded = urllib.parse.quote(poster)
-                    JRMA_URL = SHORTLINK_URL
-                    stream_link = f"{JRMA_URL}/watch/{file_id}"
 
                     print("STEP 3")
 
