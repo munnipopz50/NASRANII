@@ -221,7 +221,8 @@ async def stream_handler(request):
 
 
 # 📥 [ADVANCED STREAM ENGINE WITH RANGE & TOTAL SIZE SUPPORT]
-# 📥 [FAST STREAM ENGINE WITH FIXED PYROGRAM CHUNK CONTROLLER FOR SEEKING]
+
+# 📥 [FAST STREAM ENGINE - FIXED PYROGRAM CHUNK CONTROLLER FOR SEEKING]
 async def download_file_handler(request):
     file_id = request.match_info.get('file_id')
     if not file_id:
@@ -230,15 +231,21 @@ async def download_file_handler(request):
     try:
         file_size = None
         file_name = f"{file_id}.mp4"
+        tg_file = None  # ടെലിഗ്രാം ഫയൽ ഒബ്ജക്റ്റ് സൂക്ഷിക്കാൻ
         
         try:
             from database.ia_filterdb import get_file_details
             files_ = await get_file_details(file_id)
             if files_:
-                file_size = files_[0].file_size
-                file_name = getattr(files_[0], 'file_name', file_name)
-        except Exception:
-            pass
+                tg_file = files_[0] # 💡 നിങ്ങളുടെ ഡാറ്റാബേസിലെ ഫയൽ ഒബ്ജക്റ്റ്
+                file_size = tg_file.file_size
+                file_name = getattr(tg_file, 'file_name', file_name)
+        except Exception as e:
+            logging.error(f"DB Fetch Error: {e}")
+
+        # ഡാറ്റാബേസിൽ ഫയൽ ഇല്ലെങ്കിൽ ലിങ്ക് വർക്ക് ആകില്ല
+        if not tg_file:
+            return web.Response(text="File not found in database", status=404)
 
         range_header = request.headers.get('Range', None)
         
@@ -249,29 +256,56 @@ async def download_file_handler(request):
             'Access-Control-Allow-Origin': '*'
         }
 
-        # 💡 സിനിമ അടിച്ചു വിടുമ്പോൾ ഉള്ള കണക്ഷൻ ബ്ലോക്കിംഗ് ഒഴിവാക്കാനുള്ള ലോജിക്
+        # Pyrogram സാധാരണ ഉപയോഗിക്കുന്ന ചങ്ക് സൈസ് (1MB = 1024 * 1024 bytes)
+        # നിങ്ങളുടെ ബോട്ട് നിർമ്മിച്ച ആൾ മാറ്റം വരുത്തിയിട്ടുണ്ടെങ്കിൽ അതനുസരിച്ച് ഇതും മാറ്റാം
+        CHUNK_SIZE = 1024 * 1024 
+
+        # 💡 സിനിമ അടിച്ചു വിടുമ്പോൾ (Seek ചെയ്യുമ്പോൾ) ഉള്ള ലോജിക്
         if range_header and file_size:
             match = re.match(r'bytes=(\d+)-(\d*)', range_header)
             if match:
                 start = int(match.group(1))
                 end = int(match.group(2)) if match.group(2) else file_size - 1
                 
+                # 🛠️ PYROGRAM CHUNK OFFSET கணക്കുകൂട്ടൽ (ഇതാണ് ഏറ്റവും പ്രധാനം)
+                # ബൈറ്റുകളെ ചങ്കുകളുടെ എണ്ണത്തിലേക്ക് മാറ്റുന്നു
+                chunk_offset = start // CHUNK_SIZE
+                
                 headers['Content-Range'] = f'bytes {start}-{end}/{file_size}'
                 headers['Content-Length'] = str(end - start + 1)
-                headers['Connection'] = 'close' # 🛑 പഴയ കണക്ഷൻ ക്ലോസ് ചെയ്ത് റാം ഫ്രീ ആക്കുന്നു
+                headers['Connection'] = 'close'
                 
                 response = web.StreamResponse(status=206, reason='Partial Content', headers=headers)
                 await response.prepare(request)
                 
-                # chunk_size കുറച്ച് നൽകുന്നതിലൂടെ വലിയ ഫയലുകൾ പ്ലേ ചെയ്യുമ്പോൾ സെർവറിന് ലോഡ് വരില്ല
-                async for chunk in app.stream_media(file_id, offset=start):
-                    try:
-                        await response.write(chunk)
-                    except (ConnectionResetError, BrokenPipeError):
-                        break # ബ്രൗസർ കണക്ഷൻ നിർത്തിയാൽ ഉടൻ പൈത്തൺ കോഡും സ്റ്റോപ്പ് ചെയ്യും
+                current_position = chunk_offset * CHUNK_SIZE
+                
+                # tg_file നേരിട്ട് നൽകുന്നു (ഇതിൽ യഥാർത്ഥ ഫയൽ ഐഡി ഉണ്ടാകും)
+                async for chunk in app.stream_media(tg_file, offset=chunk_offset):
+                    # പ്ലെയർ ആവശ്യപ്പെട്ടതിലും കൂടുതൽ ഡാറ്റ പോകാതിരിക്കാൻ
+                    if current_position + len(chunk) > start:
+                        # ആദ്യത്തെ ചങ്കിലെ ആവശ്യമില്ലാത്ത മുൻഭാഗം കളയാൻ (Skip bytes)
+                        if current_position < start:
+                            chunk = chunk[start - current_position:]
+                        
+                        # പ്ലെയർ ആവശ്യപ്പെട്ട ലിമിറ്റ് കഴിഞ്ഞാൽ കട്ട് ചെയ്യാൻ
+                        if current_position + len(chunk) > end:
+                            chunk = chunk[:end - current_position + 1]
+                            try:
+                                await response.write(chunk)
+                            except:
+                                break
+                            break
+                        
+                        try:
+                            await response.write(chunk)
+                        except (ConnectionResetError, BrokenPipeError):
+                            break
+                    
+                    current_position += len(chunk)
                 return response
 
-        # സാധാരണ ഡൗൺലോഡ് രീതി
+        # ⏳ സാധാരണ തുടക്കം മുതൽ ഉള്ള പ്ലേ അല്ലെങ്കിൽ ഡൗൺലോഡ് രീതി
         if file_size:
             headers['Content-Length'] = str(file_size)
         headers['Connection'] = 'keep-alive'
@@ -279,13 +313,19 @@ async def download_file_handler(request):
         response = web.StreamResponse(status=200, reason='OK', headers=headers)
         await response.prepare(request)
         
-        async for chunk in app.stream_media(file_id):
-            await response.write(chunk)
+        async for chunk in app.stream_media(tg_file):
+            try:
+                await response.write(chunk)
+            except (ConnectionResetError, BrokenPipeError):
+                break
         return response
 
     except Exception as e:
         logging.error(f"Streaming Engine Error: {e}")
         return web.Response(text="Error playing file.", status=500)
+
+
+
 
 
 # 🌐 മെയിൻ ലിങ്ക് പേജ്
