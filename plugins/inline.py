@@ -1,0 +1,162 @@
+import logging
+from pyrogram import Client, emoji, filters
+from pyrogram.errors.exceptions.bad_request_400 import QueryIdInvalid
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InlineQueryResultCachedDocument, InlineQuery
+from database.ia_filterdb import get_search_results
+from utils import is_subscribed, get_size, temp
+from info import CACHE_TIME, AUTH_USERS, AUTH_CHANNEL, CUSTOM_FILE_CAPTION
+from database.connections_mdb import active_connection
+import random
+from pyrogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+    InlineQuery
+)
+
+
+THUMBNAILS = [
+    "https://i.postimg.cc/rDzRHvW4/20260529-212227.png",
+    "https://i.postimg.cc/K3r8K5TN/20260529-212310.png",
+    "https://i.postimg.cc/94FZcrv1/20260529-212459.png",
+    "https://i.postimg.cc/WFY7BMz9/20260529-212616.png",
+    "https://i.postimg.cc/t1Hvktn7/20260529-212653.png"
+
+]
+
+
+logger = logging.getLogger(__name__)
+cache_time = 0 if AUTH_USERS or AUTH_CHANNEL else CACHE_TIME
+
+async def inline_users(query: InlineQuery):
+    if AUTH_USERS:
+        if query.from_user and query.from_user.id in AUTH_USERS:
+            return True
+        else:
+            return False
+    if query.from_user and query.from_user.id not in temp.BANNED_USERS:
+        return True
+    return False
+
+@Client.on_inline_query()
+async def answer(bot, query):
+    """Show search results for given inline query"""
+#    chat_id = int(query.from_user.id)
+    chat_id = await active_connection(int(query.from_user.id))
+    temp.SHORT[query.from_user.id] = chat_id
+    if not await inline_users(query):
+        await query.answer(results=[],
+                           cache_time=0,
+                           switch_pm_text='okDa',
+                           switch_pm_parameter="hehe")
+        return
+
+    if AUTH_CHANNEL and not await is_subscribed(bot, query):
+        await query.answer(results=[],
+                           cache_time=0,
+                           switch_pm_text='You have to subscribe my channel to use the bot',
+                           switch_pm_parameter="subscribe")
+        return
+
+    results = []
+    if '|' in query.query:
+        string, file_type = query.query.split('|', maxsplit=1)
+        string = string.strip()
+        file_type = file_type.strip().lower()
+    else:
+        string = query.query.strip()
+        file_type = None
+
+    offset = int(query.offset or 0)
+    reply_markup = get_reply_markup(query=string)
+    files, next_offset, total = await get_search_results(
+                                                  chat_id,
+                                                  string,
+                                                  file_type=file_type,
+                                                  max_results=10,
+                                                  offset=offset)
+
+    for file in files:
+        title=file.file_name
+        size=get_size(file.file_size)
+        f_caption=file.caption
+        if CUSTOM_FILE_CAPTION:
+            try:
+                f_caption=CUSTOM_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption)
+            except Exception as e:
+                logger.exception(e)
+                f_caption=f_caption
+        if f_caption is None:
+            f_caption = f"{file.file_name}"
+        file_link = f"https://t.me/{temp.U_NAME}?start=files_{file.file_id}"
+
+        text = f"""📁 {get_size(file.file_size)} {file.file_name}
+
+        {file_link}"""
+        #                title=f"{file.file_name[:35]}{'...' if len(file.file_name) > 35 else ''} ❯",
+        name = file.file_name[:38]
+
+        spaces = " " * max(1, 42 - len(name))
+
+        title = f"{name}{spaces}❯"
+
+        results.append(
+            InlineQueryResultArticle(
+#                title=f"{file.file_name[:35]}{'...' if len(file.file_name) > 35 else ''} ❯",
+                title=title,
+                description=f'Size: {get_size(file.file_size)} | Type: {file.file_type}',
+                thumb_url=random.choice(THUMBNAILS),
+            input_message_content=InputTextMessageContent(
+            message_text=text,
+            disable_web_page_preview=True
+        ),
+        reply_markup=InlineKeyboardMarkup(
+            [[
+                InlineKeyboardButton(
+                    "📥 Get File",
+                    url=file_link
+                    )
+                ]]
+            )
+        )
+    )          
+
+    if results:
+        switch_pm_text = f"{emoji.FILE_FOLDER} Results - {total}"
+        if string:
+            switch_pm_text += f" for {string}"
+        try:
+            await query.answer(results=results,
+                           is_personal = True,
+                           cache_time=cache_time,
+                           switch_pm_text=switch_pm_text,
+                           switch_pm_parameter="start",
+                           next_offset="" if not next_offset else str(next_offset))
+        except QueryIdInvalid:
+            pass
+        except Exception as e:
+            logging.exception(str(e))
+    else:
+        switch_pm_text = f'{emoji.CROSS_MARK} No results'
+        if string:
+            switch_pm_text += f' for "{string}"'
+
+        await query.answer(results=[],
+                           is_personal = True,
+                           cache_time=cache_time,
+                           switch_pm_text=switch_pm_text,
+                           switch_pm_parameter="okay")
+
+
+def get_reply_markup(query):
+    buttons = [
+        [
+            InlineKeyboardButton('Search again', switch_inline_query_current_chat=query)
+        ]
+        ]
+    return InlineKeyboardMarkup(buttons)
+
+
+
+
