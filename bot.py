@@ -210,13 +210,15 @@ async def start_jrma_server():
     logging.info(f"🚀 JustRunMy.App Web Server active via HTTPS on Port {PORT}")
 
 
-# 🔄 # 🔄 Render-ൽ ബോട്ട് എപ്പോഴും ഓൺ ആയിരിക്കാൻ 5 മിനിറ്റ് കൂടുമ്പോൾ പിങ് ചെയ്യാനുള്ള ലോജിക്
+# 🔄 Render-ൽ ബോട്ട് എപ്പോഴും ഓൺ ആയിരിക്കാൻ 5 മിനിറ്റ് കൂടുമ്പോൾ പിങ് ചെയ്യാനുള്ള ലോജിക്
 async def send_ping(client):
-    await asyncio.sleep(60) # സെർവർ ഓൺ ആകാൻ 1 മിനിറ്റ് കാത്തിരിക്കുന്നു
+    # 💡 ബോട്ട് സ്റ്റാർട്ട് ആയി 5 മിനിറ്റ് കഴിഞ്ഞ് മാത്രം ആദ്യത്തെ പിങ് നടത്തിയാൽ മതി (സെർവർ ഫ്രീ ആകാൻ)
+    await asyncio.sleep(300) 
     while True:
         try:
             local_url = f"http://localhost:{PORT}"
-            response = requests.get(local_url, timeout=30)
+            # 💡 ടൈംഔട്ട് 60 സെക്കൻഡ് ആക്കി കൂട്ടിയിട്ടുണ്ട്
+            response = requests.get(local_url, timeout=60)
             
             # കൺസോൾ ലോബിലേക്ക്
             print(f"🟢 [PING SYSTEM] Self-Ping Successful: Status Code {response.status_code}", flush=True)
