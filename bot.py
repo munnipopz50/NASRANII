@@ -35,7 +35,7 @@ from sample_info import tempDict
 from pyrogram import idle
 from database.connections_mdb import db as connection_db
 from info import *
-
+import aiohttp
 from plugins.index import resume_index_jobs
 from plugins.index import index_files_to_db, resume_col
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -260,27 +260,35 @@ async def start_jrma_server():
 
 
 # 🔄 Render-ൽ ബോട്ട് എപ്പോഴും ഓൺ ആയിരിക്കാൻ 5 മിനിറ്റ് കൂടുമ്പോൾ പിങ് ചെയ്യാനുള്ള ലോജിക്
+ # 💡 ഫയലിന്റെ മുകളിൽ ഇല്ലെങ്കിൽ ഇത് ചേർക്കുക
+
+# 🔄 Render-ൽ ബോട്ട് എപ്പോഴും ഓൺ ആയിരിക്കാൻ Async പിങ് ലോജിക്
 async def send_ping(client):
-    # 💡 ബോട്ട് സ്റ്റാർട്ട് ആയി 5 മിനിറ്റ് കഴിഞ്ഞ് മാത്രം ആദ്യത്തെ പിങ് നടത്തിയാൽ മതി (സെർവർ ഫ്രീ ആകാൻ)
+    # ബോട്ട് സ്റ്റാർട്ട് ആയി 5 മിനിറ്റ് കഴിഞ്ഞ് മാത്രം ആദ്യത്തെ പിങ് (സെർവർ ഫ്രീ ആകാൻ)
     await asyncio.sleep(300) 
     while True:
         try:
             local_url = f"http://localhost:{PORT}"
-            # 💡 ടൈംഔട്ട് 60 സെക്കൻഡ് ആക്കി കൂട്ടിയിട്ടുണ്ട്
-            response = requests.get(local_url, timeout=60)
             
-            # കൺസോൾ ലോബിലേക്ക്
-            print(f"🟢 [PING SYSTEM] Self-Ping Successful: Status Code {response.status_code}", flush=True)
-            
-            # 📢 ടെലിഗ്രാം LOG_CHANNEL-ലേക്ക് മെസ്സേജ് അയക്കുന്നു
-            try:
-                await client.send_message(
-                    chat_id=LOG_CHANNEL, 
-                    text=f"🟢 **Self-Ping Successful**\nStatus Code: `{response.status_code}`\nTime: `{datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')}`"
-                )
-            except Exception as tg_err:
-                logging.error(f"Telegram Ping Log Failed: {tg_err}")
-                
+            # 💡 requests-ന് പകരം കോഡിനെ ബ്ലോക്ക് ചെയ്യാത്ത aiohttp ഉപയോഗിക്കുന്നു
+            async with aiohttp.ClientSession() as session:
+                async with session.get(local_url, timeout=30) as response:
+                    status = response.status
+                    
+                    if status == 200:
+                        print(f"🟢 [PING SYSTEM] Self-Ping Successful: Status Code {status}", flush=True)
+                        
+                        # 📢 ടെലിഗ്രാം LOG_CHANNEL-ലേക്ക് മെസ്സേജ് അയക്കുന്നു
+                        try:
+                            await client.send_message(
+                                chat_id=LOG_CHANNEL, 
+                                text=f"🟢 **Self-Ping Successful**\nStatus Code: `{status}`\nTime: `{datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')}`"
+                            )
+                        except Exception as tg_err:
+                            logging.error(f"Telegram Ping Log Failed: {tg_err}")
+                    else:
+                        raise Exception(f"Unexpected status code {status}")
+                        
         except Exception as e:
             print(f"🔴 [PING SYSTEM] Self-Ping Failed: {e}", flush=True)
             
