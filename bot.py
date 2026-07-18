@@ -56,7 +56,6 @@ PORT = int(os.environ.get("PORT", 8080))
 
 
 
-# 📦 ഫയൽ സൈസ് എളുപ്പത്തിൽ വായിക്കാൻ പാകത്തിന് (MB/GB) മാറ്റാനുള്ള ഫങ്ക്ഷൻ
 def get_readable_file_size(size_in_bytes) -> str:
     if size_in_bytes == 0:
         return "0B"
@@ -71,33 +70,25 @@ async def stream_handler(request):
     if not file_id:
         return web.Response(text="Invalid File ID", status=400)
 
-    # 🔗 ഡിഫോൾട്ട് ബാക്കപ്പ് പോസ്റ്റർ ലിങ്ക്
     poster_url = "https://telegra.ph/file/b25f4625752187f58385e.jpg" 
     movie_title = "Nasrani Movies"
     movie_info = ""
-    
-    # പുതിയ വേരിയബിളുകൾ
     display_name = "Unknown Movie"
     file_size = "N/A"
 
     try:
         from database.ia_filterdb import get_file_details
-        # 💡 നിങ്ങളുടെ ബോട്ടിന്റെ ഘടന അനുസരിച്ച് get_poster പാത്ത് ശരിയാണെന്ന് ഉറപ്പാക്കുക
         from utils import get_poster 
         
         files_ = await get_file_details(file_id)
         if files_:
             file_name = files_[0].file_name
-            display_name = file_name # ഒറിജിനൽ ഫയൽ നെയിം സേവ് ചെയ്യുന്നു
-            file_size = get_readable_file_size(files_[0].file_size) # സൈസ് ഫോർമാറ്റ് ചെയ്യുന്നു
+            display_name = file_name 
+            file_size = get_readable_file_size(files_[0].file_size)
             
-            # ഫയൽ നെയിമിൽ നിന്നുള്ള ഡോട്ടുകൾ മാറ്റി ക്ലീൻ ആയ ഒരു സെർച്ച് ക്വറി ഉണ്ടാക്കുന്നു
             search_query = file_name.replace(".", " ").split("(")[0].strip()
-            
-            # 🎬 IMDb-യിൽ നിന്ന് പോസ്റ്ററും ഡീറ്റെയിൽസും ഫെച്ച് ചെയ്യുന്നു
             imdb = await get_poster(search_query, file=file_name)
             
-            # ഫയൽ ക്യാപ്ഷനിൽ ഫോട്ടോ ലിങ്ക് ഉണ്ടോ എന്ന് ആദ്യം തന്നെ ബാക്കപ്പ് ആയി നോക്കുന്നു
             caption_poster = None
             if files_[0].caption:
                 match = re.search(r'(https?://[^\s]+(?:jpg|jpeg|png|webp))', files_[0].caption, re.IGNORECASE)
@@ -105,7 +96,6 @@ async def stream_handler(request):
                     caption_poster = match.group(1)
 
             if imdb and isinstance(imdb, dict):
-                # IMDb-യിൽ നിന്ന് വരാൻ സാധ്യതയുള്ള എല്ലാ ഇമേജ് കീകളും ചെക്ക് ചെയ്യുന്നു
                 poster_url = imdb.get("poster") or imdb.get("image") or imdb.get("url") or caption_poster or poster_url
                 f_title = imdb.get("title", search_query)
                 f_genres = imdb.get("genres", "N/A")
@@ -120,7 +110,6 @@ async def stream_handler(request):
                 </div>
                 """
             else:
-                # IMDb ലഭിച്ചില്ലെങ്കിൽ ക്യാപ്ഷനിലെ ഫോട്ടോ ഉപയോഗിക്കുന്നു
                 if caption_poster:
                     poster_url = caption_poster
     except Exception as e:
@@ -136,7 +125,12 @@ async def stream_handler(request):
     host = request.headers.get('Host', '')
     protocol = "https" if request.secure or request.headers.get('X-Forwarded-Proto', '') == 'https' else "http"
     local_download_url = f"{protocol}://{host}/download_file/{file_id}"
-    bot_link = "https://t.me/your_bot_username" # 🤖 ഇവിടെ നിങ്ങളുടെ ബോട്ട് യൂസർനെയിം നൽകുക
+    
+    # External Player links
+    vlc_url = f"vlc://{local_download_url.replace('https://', '').replace('http://', '')}"
+    mx_url = f"intent:{local_download_url}#Intent;package=com.mxtech.videoplayer.ad;end"
+    
+    bot_link = "https://t.me/your_bot_username" # 🤖 ഇവിടെ ബോട്ട് യൂസർനെയിം മാറ്റുക
 
     html_content = f"""
     <!DOCTYPE html>
@@ -166,13 +160,9 @@ async def stream_handler(request):
             }}
             .header a {{ color: #00d2ff; text-decoration: none; font-weight: bold; font-size: 16px; display: block; margin-top: 10px; }}
             .player-container {{ width: 95%; max-width: 650px; background: #1f1f1f; padding: 25px; border-radius: 15px; box-shadow: 0px 8px 25px rgba(0,0,0,0.5); text-align: center; box-sizing: border-box; }}
-            
-            /* 🖼️ പോസ്റ്റർ ഇമേജ് സ്റ്റൈൽ */
             .poster-img {{ width: 100%; max-width: 220px; height: 320px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0px 5px 15px rgba(0,0,0,0.6); object-fit: cover; border: 2px solid #333; }}
-            
             video {{ width: 100%; background: #000; border-radius: 10px; margin-top: 15px; border: 1px solid #444; }}
             
-            /* 📊 ഫയൽ വിവരങ്ങൾ കാണിക്കുന്ന സെക്ഷൻ */
             .file-details {{ background: #292929; padding: 15px; border-radius: 10px; text-align: left; margin-bottom: 15px; font-size: 14px; border-left: 4px solid #ff00de; }}
             .file-details p {{ margin: 6px 0; word-break: break-all; line-height: 1.4; }}
             .file-details strong {{ color: #00d2ff; }}
@@ -180,8 +170,15 @@ async def stream_handler(request):
             .movie-meta {{ background: #292929; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; text-align: center; border-left: 4px solid #00d2ff; }}
             .movie-meta p {{ margin: 5px 0; }}
             
-            .download-btn {{ display: inline-block; background: linear-gradient(135deg, #00c853, #00b0ff); color: white; padding: 12px 35px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 30px; margin-top: 20px; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,200,83,0.4); }}
-            .download-btn:hover {{ transform: scale(1.05); }}
+            /* 🕹️ ആപ്പ് പ്ലെയർ ബട്ടണുകളുടെ പുതിയ സ്ഥാനം (ഡൗൺലോഡിന് മുകളിൽ) */
+            .apps-container {{ display: flex; justify-content: space-around; gap: 10px; margin: 20px 0 10px 0; flex-wrap: wrap; }}
+            .app-btn {{ flex: 1; min-width: 140px; padding: 12px; font-weight: bold; text-decoration: none; border-radius: 8px; font-size: 14px; color: white; transition: 0.2s; text-align: center; display: inline-flex; align-items: center; justify-content: center; }}
+            .vlc-btn {{ background-color: #ff8800; box-shadow: 0 4px 10px rgba(255,136,0,0.3); }}
+            .mx-btn {{ background-color: #0055ff; box-shadow: 0 4px 10px rgba(0,85,255,0.3); }}
+            .app-btn:hover {{ transform: translateY(-2px); }}
+
+            .download-btn {{ display: block; width: 100%; background: linear-gradient(135deg, #00c853, #00b0ff); color: white; padding: 12px 20px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 30px; margin-top: 15px; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,200,83,0.4); box-sizing: border-box; }}
+            .download-btn:hover {{ transform: scale(1.02); }}
         </style>
     </head>
     <body>
@@ -191,25 +188,28 @@ async def stream_handler(request):
         </div>
         
         <div class="player-container">
-            <!-- മൂവി പോസ്റ്റർ -->
             <img src="{poster_url}" class="poster-img" alt="Movie Poster" onerror="this.src='https://telegra.ph/file/b25f4625752187f58385e.jpg';">
             
-            <!-- ℹ️ ഫയൽ വിവരങ്ങൾ ഇവിടെ കാണിക്കും -->
             <div class="file-details">
                 <p><strong>🎬 File Name:</strong> {display_name}</p>
                 <p><strong>💾 File Size:</strong> {file_size}</p>
             </div>
 
-            <!-- IMDb വിവരങ്ങൾ -->
             {movie_info}
             
-            <!-- വീഡിയോ പ്ലെയർ -->
+            <!-- ഇൻ-ബിൽറ്റ് പ്ലെയർ നിലവിലുള്ളതുപോലെ -->
             <video controls autoplay preload="auto" playsinline>
                 <source src="{local_download_url}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
+
+            <!-- 📱 പ്ലെയറിന് താഴെയും ഡൗൺലോഡ് ബട്ടന് മുകളിലുമായി ആപ്പ് ബട്ടണുകൾ -->
+            <div class="apps-container">
+                <a href="{vlc_url}" class="app-btn vlc-btn">🧡 Watch in VLC</a>
+                <a href="{mx_url}" class="app-btn mx-btn">💙 Watch in MX Player</a>
+            </div>
             
-            <br>
+            <!-- ഫസ്റ്റ് ഡൗൺലോഡ് ബട്ടൺ -->
             <a href="{local_download_url}" class="download-btn" download>📥 Fast Download File</a>
         </div>
     </body>
