@@ -46,44 +46,73 @@ import os
 import re
 import asyncio
 
-PORT = int(os.environ.get("PORT", 8080))
 
 # 📺 വെബ്‌സൈറ്റിൽ പ്ലേ ചെയ്യാനും നേരിട്ട് ഡൗൺലോഡ് ചെയ്യാനുമുള്ള HTML പ്ലെയർ പേജ്
+import re
+import math
+from aiohttp import web
+
+PORT = int(os.environ.get("PORT", 8080))
+
+
+
+# 📦 ഫയൽ സൈസ് എളുപ്പത്തിൽ വായിക്കാൻ പാകത്തിന് (MB/GB) മാറ്റാനുള്ള ഫങ്ക്ഷൻ
+def get_readable_file_size(size_in_bytes) -> str:
+    if size_in_bytes == 0:
+        return "0B"
+    size_name = ("B", "KB", "MB", "GB", "TB")
+    i = int(math.floor(math.log(size_in_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_in_bytes / p, 2)
+    return f"{s} {size_name[i]}"
+
 async def stream_handler(request):
     file_id = request.match_info.get('file_id')
     if not file_id:
         return web.Response(text="Invalid File ID", status=400)
 
-    # ഡിഫോൾട്ട് പോസ്റ്റർ ലിങ്ക് (IMDb ലഭിച്ചില്ലെങ്കിൽ കാണിക്കാൻ)
-    poster_url = "https://telegra.ph/file/fcc849db4bf5c517f0f8d.jpg" 
+    # 🔗 ഡിഫോൾട്ട് ബാക്കപ്പ് പോസ്റ്റർ ലിങ്ക്
+    poster_url = "https://telegra.ph/file/b25f4625752187f58385e.jpg" 
     movie_title = "Nasrani Movies"
-    movie_info = "" # IMDb വിവരങ്ങൾ കാണിക്കാൻ
+    movie_info = ""
+    
+    # പുതിയ വേരിയബിളുകൾ
+    display_name = "Unknown Movie"
+    file_size = "N/A"
 
     try:
         from database.ia_filterdb import get_file_details
-        # 💡 ശ്രദ്ധിക്കുക: നിങ്ങളുടെ ബോട്ട് കോഡിൽ get_poster എവിടെ നിന്നാണോ ഇമ്പോർട്ട് ചെയ്തിരിക്കുന്നത് ആ പാത്ത് ഇവിടെ നൽകുക
-        # ഉദാഹരണത്തിന്: from utils import get_poster അല്ലെങ്കിൽ from plugins.helper.imdb import get_poster
+        # 💡 നിങ്ങളുടെ ബോട്ടിന്റെ ഘടന അനുസരിച്ച് get_poster പാത്ത് ശരിയാണെന്ന് ഉറപ്പാക്കുക
         from utils import get_poster 
         
         files_ = await get_file_details(file_id)
         if files_:
             file_name = files_[0].file_name
+            display_name = file_name # ഒറിജിനൽ ഫയൽ നെയിം സേവ് ചെയ്യുന്നു
+            file_size = get_readable_file_size(files_[0].file_size) # സൈസ് ഫോർമാറ്റ് ചെയ്യുന്നു
+            
             # ഫയൽ നെയിമിൽ നിന്നുള്ള ഡോട്ടുകൾ മാറ്റി ക്ലീൻ ആയ ഒരു സെർച്ച് ക്വറി ഉണ്ടാക്കുന്നു
             search_query = file_name.replace(".", " ").split("(")[0].strip()
             
             # 🎬 IMDb-യിൽ നിന്ന് പോസ്റ്ററും ഡീറ്റെയിൽസും ഫെച്ച് ചെയ്യുന്നു
             imdb = await get_poster(search_query, file=file_name)
             
-            if imdb:
-                # IMDb-യിൽ നിന്ന് ലഭിക്കുന്ന പോസ്റ്റർ യുആർഎൽ സെറ്റ് ചെയ്യുന്നു
-                poster_url = imdb.get("poster") or imdb.get("image") or poster_url
+            # ഫയൽ ക്യാപ്ഷനിൽ ഫോട്ടോ ലിങ്ക് ഉണ്ടോ എന്ന് ആദ്യം തന്നെ ബാക്കപ്പ് ആയി നോക്കുന്നു
+            caption_poster = None
+            if files_[0].caption:
+                match = re.search(r'(https?://[^\s]+(?:jpg|jpeg|png|webp))', files_[0].caption, re.IGNORECASE)
+                if match:
+                    caption_poster = match.group(1)
+
+            if imdb and isinstance(imdb, dict):
+                # IMDb-യിൽ നിന്ന് വരാൻ സാധ്യതയുള്ള എല്ലാ ഇമേജ് കീകളും ചെക്ക് ചെയ്യുന്നു
+                poster_url = imdb.get("poster") or imdb.get("image") or imdb.get("url") or caption_poster or poster_url
                 f_title = imdb.get("title", search_query)
                 f_genres = imdb.get("genres", "N/A")
                 f_year = imdb.get("year", "N/A")
                 f_rating = imdb.get("rating", "N/A")
                 
                 movie_title = f_title
-                # വെബ് പേജിൽ കാണിക്കാൻ വേണ്ടിയുള്ള എച്ച്ടിഎംഎൽ കോഡ്
                 movie_info = f"""
                 <div class="movie-meta">
                     <p><strong>🎭 Genres:</strong> {f_genres}</p>
@@ -91,17 +120,14 @@ async def stream_handler(request):
                 </div>
                 """
             else:
-                # IMDb ഡീറ്റെയിൽസ് കിട്ടിയില്ലെങ്കിൽ പഴയപോലെ ക്യാപ്ഷൻ ചെക്ക് ചെയ്യും
-                if files_[0].caption:
-                    match = re.search(r'(https?://[^\s]+(?:jpg|jpeg|png))', files_[0].caption)
-                    if match:
-                        poster_url = match.group(1)
+                # IMDb ലഭിച്ചില്ലെങ്കിൽ ക്യാപ്ഷനിലെ ഫോട്ടോ ഉപയോഗിക്കുന്നു
+                if caption_poster:
+                    poster_url = caption_poster
     except Exception as e:
         print(f"IMDb Web Player Error: {e}")
-        # എന്തെങ്കിലും എറർ ഉണ്ടായാൽ ബാക്കപ്പ് ആയി പഴയ ക്യാപ്ഷൻ ലോജിക് വർക്ക് ചെയ്യും
         try:
             if files_ and files_[0].caption:
-                match = re.search(r'(https?://[^\s]+(?:jpg|jpeg|png))', files_[0].caption)
+                match = re.search(r'(https?://[^\s]+(?:jpg|jpeg|png|webp))', files_[0].caption, re.IGNORECASE)
                 if match:
                     poster_url = match.group(1)
         except:
@@ -110,7 +136,7 @@ async def stream_handler(request):
     host = request.headers.get('Host', '')
     protocol = "https" if request.secure or request.headers.get('X-Forwarded-Proto', '') == 'https' else "http"
     local_download_url = f"{protocol}://{host}/download_file/{file_id}"
-    bot_link = "https://t.me/your_bot_username" # ഇവിടെ നിങ്ങളുടെ ബോട്ട് ലിങ്ക് മാറ്റുക
+    bot_link = "https://t.me/your_bot_username" # 🤖 ഇവിടെ നിങ്ങളുടെ ബോട്ട് യൂസർനെയിം നൽകുക
 
     html_content = f"""
     <!DOCTYPE html>
@@ -119,17 +145,17 @@ async def stream_handler(request):
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{movie_title} - Web Player</title>
-        <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Lobster&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
         <style>
-            body {{ margin: 0; padding: 20px; background-color: #ffffff; color: #000000; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }}
+            body {{ margin: 0; padding: 20px; background-color: #141414; color: #ffffff; font-family: 'Poppins', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }}
             .header {{ text-align: center; margin-bottom: 20px; width: 100%; }}
             .header h1 {{ 
                 margin: 0; 
                 font-family: 'Lobster', cursive; 
-                font-size: 35px; 
+                font-size: 38px; 
                 color: #fff;
                 text-transform: uppercase;
-                text-shadow: 0 0 5px #ff00de, 0 0 10px #ff00de, 0 0 20px #ff00de, 0 0 40px #ff00de;
+                text-shadow: 0 0 5px #ff00de, 0 0 10px #ff00de, 0 0 20px #ff00de;
                 animation: neon 1.5s infinite alternate;
                 word-wrap: break-word;
                 padding: 0 10px;
@@ -138,13 +164,24 @@ async def stream_handler(request):
                 from {{ text-shadow: 0 0 5px #ff00de, 0 0 10px #ff00de, 0 0 20px #ff00de; }}
                 to {{ text-shadow: 0 0 10px #00d2ff, 0 0 20px #00d2ff, 0 0 30px #00d2ff; }}
             }}
-            .header a {{ color: #555; text-decoration: none; font-weight: bold; font-size: 16px; display: block; margin-top: 10px; }}
-            .player-container {{ width: 90%; max-width: 600px; background: #f8f9fa; padding: 20px; border-radius: 15px; box-shadow: 0px 4px 15px rgba(0,0,0,0.1); text-align: center; }}
-            img {{ width: 180px; height: auto; border-radius: 10px; margin-bottom: 15px; box-shadow: 0px 4px 10px rgba(0,0,0,0.2); object-fit: cover; }}
-            video {{ width: 100%; background: #000; border-radius: 8px; margin-top: 10px; }}
-            .movie-meta {{ background: #eaeaea; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; text-align: center; line-height: 1.5; }}
+            .header a {{ color: #00d2ff; text-decoration: none; font-weight: bold; font-size: 16px; display: block; margin-top: 10px; }}
+            .player-container {{ width: 95%; max-width: 650px; background: #1f1f1f; padding: 25px; border-radius: 15px; box-shadow: 0px 8px 25px rgba(0,0,0,0.5); text-align: center; box-sizing: border-box; }}
+            
+            /* 🖼️ പോസ്റ്റർ ഇമേജ് സ്റ്റൈൽ */
+            .poster-img {{ width: 100%; max-width: 220px; height: 320px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0px 5px 15px rgba(0,0,0,0.6); object-fit: cover; border: 2px solid #333; }}
+            
+            video {{ width: 100%; background: #000; border-radius: 10px; margin-top: 15px; border: 1px solid #444; }}
+            
+            /* 📊 ഫയൽ വിവരങ്ങൾ കാണിക്കുന്ന സെക്ഷൻ */
+            .file-details {{ background: #292929; padding: 15px; border-radius: 10px; text-align: left; margin-bottom: 15px; font-size: 14px; border-left: 4px solid #ff00de; }}
+            .file-details p {{ margin: 6px 0; word-break: break-all; line-height: 1.4; }}
+            .file-details strong {{ color: #00d2ff; }}
+            
+            .movie-meta {{ background: #292929; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; text-align: center; border-left: 4px solid #00d2ff; }}
             .movie-meta p {{ margin: 5px 0; }}
-            .download-btn {{ display: inline-block; background-color: #00c853; color: white; padding: 12px 30px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 25px; margin-top: 20px; }}
+            
+            .download-btn {{ display: inline-block; background: linear-gradient(135deg, #00c853, #00b0ff); color: white; padding: 12px 35px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 30px; margin-top: 20px; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,200,83,0.4); }}
+            .download-btn:hover {{ transform: scale(1.05); }}
         </style>
     </head>
     <body>
@@ -152,20 +189,33 @@ async def stream_handler(request):
             <h1>{movie_title}</h1>
             <a href="{bot_link}" target="_blank">🤖 Click Here to Join Nasrani BOT</a>
         </div>
+        
         <div class="player-container">
-            <img src="{poster_url}" alt="Movie Poster">
+            <!-- മൂവി പോസ്റ്റർ -->
+            <img src="{poster_url}" class="poster-img" alt="Movie Poster" onerror="this.src='https://telegra.ph/file/b25f4625752187f58385e.jpg';">
+            
+            <!-- ℹ️ ഫയൽ വിവരങ്ങൾ ഇവിടെ കാണിക്കും -->
+            <div class="file-details">
+                <p><strong>🎬 File Name:</strong> {display_name}</p>
+                <p><strong>💾 File Size:</strong> {file_size}</p>
+            </div>
+
+            <!-- IMDb വിവരങ്ങൾ -->
             {movie_info}
+            
+            <!-- വീഡിയോ പ്ലെയർ -->
             <video controls autoplay preload="auto" playsinline>
                 <source src="{local_download_url}" type="video/mp4">
+                Your browser does not support the video tag.
             </video>
+            
             <br>
             <a href="{local_download_url}" class="download-btn" download>📥 Fast Download File</a>
         </div>
     </body>
     </html>
     """
-    return web.Response(text=html_content, content_type='text/html') 
- 
+    return web.Response(text=html_content, content_type='text/html')
 
 
 
