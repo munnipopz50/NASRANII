@@ -1,10 +1,10 @@
 from pyrogram import Client, filters
-from pyrogram.types import InputStickerSetItem
+# from pyrogram.types import InputStickerSetItem
 from PIL import Image
 from info import *
 import os
 
-
+from pyrogram.raw.types import InputStickerSetItem
 
 app = Client("sticker_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
