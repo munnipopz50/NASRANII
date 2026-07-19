@@ -1,69 +1,64 @@
-import os
-import asyncio
 from pyrogram import Client, filters
+from pyrogram.types import InputStickerSetItem
 from PIL import Image
 from info import *
-
 import os
-from pyrogram import Client, filters
-from PIL import Image
 
-# താൽക്കാലിക ഫയൽ നാമം
-TEMP_STICKER = "temp_sticker.webp"
 
-def resize_image(photo_path):
-    """ഫോട്ടോയെ സ്റ്റിക്കർ സൈസിലേക്ക് (512x512) മാറ്റുന്നു"""
-    with Image.open(photo_path) as im:
-        im = im.convert("RGBA")
-        im.thumbnail((512, 512))
-        im.save(TEMP_STICKER, "WEBP", quality=95)
-    return TEMP_STICKER
 
-# 1. Test Command
-@Client.on_message(filters.command("test"))
-async def test_cmd(client, message):
-    await message.reply_text("✅ ബോട്ട് സബ്-ഫോൾഡറിൽ നിന്നും കൃത്യമായി വർക്ക് ചെയ്യുന്നുണ്ട്!")
+app = Client("sticker_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# 2. Kang Command
+# 1. /kang കമാൻഡ് - ഫോട്ടോയെ സ്റ്റിക്കറാക്കി മാറ്റാൻ
 @Client.on_message(filters.command("kang") & filters.reply)
-async def kang_image(client, message):
-    if not message.reply_to_message or not message.reply_to_message.photo:
-        await message.reply_text("ദയവായി ഒരു ഫോട്ടോയ്ക്ക് റിപ്ലൈ ആയി ഈ കമാൻഡ് അയക്കുക!")
-        return
-
-    status = await message.reply_text("ഫോട്ടോ സ്റ്റിക്കർ ആക്കി മാറ്റുന്നു... ⏳")
-    
-    try:
-        # ഫോട്ടോ ഡൗൺലോഡ് ചെയ്യുന്നു
-        photo_path = await message.reply_to_message.download(file_name="temp_photo.jpg")
+def make_sticker(client, message):
+    replied = message.reply_to_message
+    if replied.photo or replied.document:
+        msg = message.reply("പ്രോസസ്സ് ചെയ്യുന്നു, ദയവായി കാത്തിരിക്കുക...")
+        path = client.download_media(replied)
         
-        # സ്റ്റിക്കർ റീസൈസ് ചെയ്യുന്നു
-        sticker_file = resize_image(photo_path)
+        # സ്റ്റിക്കർ സൈസിലേക്ക് (512x512) മാറ്റുന്നു
+        img = Image.open(path)
+        img.thumbnail((512, 512))
+        img.save("sticker.webp", "WEBP")
         
         # സ്റ്റിക്കർ അയക്കുന്നു
-        await message.reply_sticker(sticker_file)
+        client.send_sticker(message.chat.id, "sticker.webp")
+        msg.delete()
         
-        # താൽക്കാലിക ഫയലുകൾ ഡിലീറ്റ് ചെയ്യുന്നു
-        await status.delete()
-        if os.path.exists(photo_path): os.remove(photo_path)
-        if os.path.exists(TEMP_STICKER): os.remove(TEMP_STICKER)
+        os.remove(path)
+        os.remove("sticker.webp")
+    else:
+        message.reply("ദയവായി ഒരു ഫോട്ടോയ്ക്ക് മറുപടിയായി '/kang' എന്ന് അയക്കുക.")
 
-    except Exception as e:
-        await status.edit(f"❌ Error: {e}")
-        if os.path.exists("temp_photo.jpg"): os.remove("temp_photo.jpg")
-        if os.path.exists(TEMP_STICKER): os.remove(TEMP_STICKER)
-
-# 3. Pack Command
+# 2. /pack കമാൻഡ് - സ്റ്റിക്കർ പാക്ക് നിർമ്മിക്കാൻ/ആഡ് ചെയ്യാൻ
 @Client.on_message(filters.command("pack") & filters.reply)
-async def make_pack(client, message):
-    if not message.reply_to_message or not message.reply_to_message.sticker:
-        await message.reply_text("ഞാൻ ഉണ്ടാക്കി തന്ന സ്റ്റിക്കറിന് റിപ്ലൈ ആയി വേണം `/pack` എന്ന് അയക്കാൻ!")
-        return
+def add_to_pack(client, message):
+    replied = message.reply_to_message
+    if replied.sticker:
+        # പാക്കിന്റെ പേര് (യുണീക്ക് ആയിരിക്കണം)
+        pack_name = f"sticker_pack_{message.from_user.id}"
+        pack_title = f"{message.from_user.first_name}'s Pack"
+        
+        try:
+            # ആദ്യം പാക്ക് ഉണ്ടോ എന്ന് പരിശോധിക്കുന്നു, ഇല്ലെങ്കിൽ നിർമ്മിക്കുന്നു
+            client.create_sticker_set(
+                user_id=message.from_user.id,
+                name=pack_name,
+                title=pack_title,
+                stickers=[InputStickerSetItem(file_id=replied.file_id, emojis="⭐")]
+            )
+            message.reply("പുതിയ സ്റ്റിക്കർ പാക്ക് വിജയകരമായി നിർമ്മിച്ചു!")
+        except Exception:
+            # പാക്ക് നിലവിലുണ്ടെങ്കിൽ സ്റ്റിക്കർ മാത്രം ആഡ് ചെയ്യുന്നു
+            try:
+                client.add_sticker_to_set(
+                    user_id=message.from_user.id,
+                    name=pack_name,
+                    sticker=InputStickerSetItem(file_id=replied.file_id, emojis="⭐")
+                )
+                message.reply("ഈ സ്റ്റിക്കർ നിങ്ങളുടെ പാക്കിലേക്ക് വിജയകരമായി ചേർത്തു!")
+            except Exception as e:
+                message.reply(f"പിശക് സംഭവിച്ചു: {e}")
+    else:
+        message.reply("ദയവായി ഒരു സ്റ്റിക്കറിന് മറുപടിയായി '/pack' എന്ന് അയക്കുക.")
 
-    user_name = message.from_user.first_name
-    await message.reply_text(
-        f"ഹലോ {user_name},\n\nഈ സ്റ്റിക്കർ നിങ്ങളുടെ സ്വന്തം പാക്കിലേക്ക് ചേർക്കാൻ താഴെ പറയുന്നവ ചെയ്യുക:\n\n"
-        "1. @Stickers ബോട്ട് സ്റ്റാർട്ട് ചെയ്യുക.\n"
-        "2. `/newpack` എന്ന് അയക്കുക.\n"
-        "3. മുകളിലെ സ്റ്റിക്കർ അവർക്ക് ഫോർവേഡ് ചെയ്യുക."
-    )
