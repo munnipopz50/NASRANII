@@ -466,6 +466,8 @@ class Bot(Client):
         now = datetime.now(tz)
         custom_time = now.strftime("%H:%M:%S %p")
         await self.send_message(chat_id=LOG_CHANNEL, text=script.RESTART_TXT.format(today, custom_time))
+        await resume_index_jobs(self)
+#        await send_active_notification(self)
 
     async def stop(self, *args):
         await super().stop()
@@ -486,6 +488,22 @@ class Bot(Client):
             for message in messages:
                 yield message
                 current += 1
+
+
+async def send_active_notification(bot):
+    chats = await db.get_all_chats()
+
+    for chat in chats:
+        try:
+            await bot.send_message(
+                chat["id"],
+                "✅ <b>Bot Activated Successfully</b>\n\n"
+                "🤖 Bot is now online and working properly."
+            )
+        except Exception as e:
+            print(f"{chat['id']} : {e}")
+
+
 
 app = Bot()
 app.run()
