@@ -1,6 +1,5 @@
 import os
 from pyrogram import Client, filters
-from pyrogram.types import Message
 from PIL import Image
 from info import * 
 
@@ -17,7 +16,7 @@ def resize_image(photo_path):
     return TEMP_STICKER
 
 @Client.on_message(filters.command("kang") & filters.reply)
-async def kang_image(client: Client, message: Message):
+async def kang_image(client, message):
     if not message.reply_to_message.photo:
         await message.reply_text("ദയവായി ഒരു ഫോട്ടോയ്ക്ക് റിപ്ലൈ ആയി ഈ കമാൻഡ് അയക്കുക!")
         return
@@ -37,7 +36,7 @@ async def kang_image(client: Client, message: Message):
             os.remove(photo_path)
 
 @Client.on_message(filters.command("pack") & filters.reply)
-async def make_pack(client: Client, message: Message):
+async def make_pack(client, message):
     if not message.reply_to_message.sticker:
         await message.reply_text("ഞാൻ ഉണ്ടാക്കി തന്ന സ്റ്റിക്കറിന് റിപ്ലൈ ആയി വേണം `/pack` എന്ന് അയക്കാൻ!")
         return
