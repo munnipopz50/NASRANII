@@ -130,7 +130,8 @@ async def stream_handler(request):
     local_download_url = f"{protocol}://{host}/download_file/{file_id}"
 
     # 🛠️ MX Player-ന് വേണ്ടിയുള്ള ശരിയായ ആൻഡ്രോയിഡ് ഇന്റന്റ് ഘടന (Intent Syntax)
-    mx_url = f"intent:{local_download_url}#Intent;package=com.mxtech.videoplayer.ad;S.title={urllib.parse.quote(display_name)};end"
+    # 🛠️ ലിങ്കിന്റെ അവസാനം .m3u എന്ന് കാണിക്കാനും MX Player നേരിട്ട് ഓപ്പൺ ചെയ്യാനുമുള്ള കൃത്യമായ ഫോർമാറ്റ്
+    mx_url = f"intent:{local_download_url}#Intent;type=video/*;package=com.mxtech.videoplayer.ad;S.title={urllib.parse.quote(display_name)};S.file_extension=.m3u;end"
 
     # 🛠️ VLC Player-ന് വേണ്ടിയുള്ള ശരിയായ ലിങ്ക് ഘടന
     vlc_url = f"vlc://{local_download_url}"
