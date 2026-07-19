@@ -354,49 +354,66 @@ async def start_jrma_server():
     logging.info(f"🚀 JustRunMy.App Web Server active via HTTPS on Port {PORT}")
 
 
-# 🔄 Render-ൽ ബോട്ട് എപ്പോഴും ഓൺ ആയിരിക്കാൻ 5 മിനിറ്റ് കൂടുമ്പോൾ പിങ് ചെയ്യാനുള്ള ലോജിക്
- # 💡 ഫയലിന്റെ മുകളിൽ ഇല്ലെങ്കിൽ ഇത് ചേർക്കുക
-
-# 🔄 Render-ൽ ബോട്ട് എപ്പോഴും ഓൺ ആയിരിക്കാൻ Async പിങ് ലോജിക്
+# 🔄 [UPDATED CONTROLLER FOR CRON-JOB.ORG API PING & 3-MIN TELEGRAM ALERTS]
 async def send_ping(client):
-    # ബോട്ട് സ്റ്റാർട്ട് ആയി 5 മിനിറ്റ് കഴിഞ്ഞ് മാത്രം ആദ്യത്തെ പിങ് (സെർവർ ഫ്രീ ആകാൻ)
-    await asyncio.sleep(300) 
+    CRON_API_KEY = "H0kpdbZCFdx7g38U9dOYdIMjXPNSA03IOzN1d4yorWY="
+    YOUR_RENDER_URL = "https://nasranii.onrender.com/"
+    
+    # ബോട്ട് ഓൺ ആയി 2 മിനിറ്റ് കഴിഞ്ഞ് ആദ്യം Cron-Job ലിങ്ക് വെരിഫൈ ചെയ്യും
+    await asyncio.sleep(120) 
+    
+    cron_api_url = "https://api.cron-job.org/jobs"
+    cron_headers = {
+        "Authorization": f"Bearer {CRON_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    # 🔗 Cron-Job.org-ൽ നിങ്ങളുടെ Render ലിങ്ക് ഓട്ടോമാറ്റിക് ആയി ആഡ് ചെയ്യുന്നു
+    try:
+        async with aiohttp.ClientSession(headers=cron_headers) as session:
+            async with session.get(cron_api_url) as resp:
+                if resp.status == 200:
+                    jobs_data = await resp.json()
+                    job_exists = any(job.get('url') == YOUR_RENDER_URL for job in jobs_data.get('jobs', []))
+                    
+                    if not job_exists:
+                        new_job = {
+                            "job": {
+                                "title": "Nasrani Render Controller",
+                                "url": YOUR_RENDER_URL,
+                                "enabled": True,
+                                "schedule": {
+                                    "timezone": "Asia/Kolkata",
+                                    "expiresAt": 0,
+                                    "hours": [-1],
+                                    "mdays": [-1],
+                                    "minutes": [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57],
+                                    "months": [-1],
+                                    "wdays": [-1]
+                                }
+                            }
+                        }
+                        await session.post(cron_api_url, json=new_job)
+                        logging.info("🚀 Cron-Job successfully registered for Render URL!")
+    except Exception as e:
+        logging.error(f"Cron-Job Auto-Setup Error: {e}")
+
+    # 🟢 ഓരോ 3 മിനിറ്റിലും LOG_CHANNEL-ലേക്ക് അലേർട്ട് അയക്കുന്ന ബാക്ക്ഗ്രൗണ്ട് ലൂപ്പ്
     while True:
         try:
-            local_url = f"http://localhost:{PORT}"
+            current_time = datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')
+            log_message = (
+                "🟢 **Render Server Status Alert**\n\n"
+                f"**Status:** Awake & Active\n"
+                f"**Trigger:** Cron-Job External Ping\n"
+                f"**Interval:** Every 3 Minutes\n"
+                f"**Time:** `{current_time}`"
+            )
+            await client.send_message(chat_id=LOG_CHANNEL, text=log_message)
+        except Exception as tg_err:
+            logging.error(f"Telegram Ping Log Failed: {tg_err}")
             
-            # 💡 requests-ന് പകരം കോഡിനെ ബ്ലോക്ക് ചെയ്യാത്ത aiohttp ഉപയോഗിക്കുന്നു
-            async with aiohttp.ClientSession() as session:
-                async with session.get(local_url, timeout=30) as response:
-                    status = response.status
-                    
-                    if status == 200:
-                        print(f"🟢 [PING SYSTEM] Self-Ping Successful: Status Code {status}", flush=True)
-                        
-                        # 📢 ടെലിഗ്രാം LOG_CHANNEL-ലേക്ക് മെസ്സേജ് അയക്കുന്നു
-                        try:
-                            await client.send_message(
-                                chat_id=LOG_CHANNEL, 
-                                text=f"🟢 **Self-Ping Successful**\nStatus Code: `{status}`\nTime: `{datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')}`"
-                            )
-                        except Exception as tg_err:
-                            logging.error(f"Telegram Ping Log Failed: {tg_err}")
-                    else:
-                        raise Exception(f"Unexpected status code {status}")
-                        
-        except Exception as e:
-            print(f"🔴 [PING SYSTEM] Self-Ping Failed: {e}", flush=True)
-            
-            # 📢 പരാജയപ്പെട്ടാൽ ചാനലിലേക്ക് അലേർട്ട് അയക്കുന്നു
-            try:
-                await client.send_message(
-                    chat_id=LOG_CHANNEL, 
-                    text=f"🔴 **Self-Ping Failed**\nError: `{e}`"
-                )
-            except:
-                pass
-                
-        await asyncio.sleep(300) # 5 മിനിറ്റ് ഇടവേള
+        await asyncio.sleep(180) # കൃത്യം 3 മിനിറ്റ് (180 സെക്കൻഡ്) ഇടവേള
 
 
 class Bot(Client):
@@ -422,7 +439,7 @@ class Bot(Client):
         
         await start_jrma_server()
         
-        # 🔄 ഇവിടെ നമ്മൾ പിങ് ടാസ്ക് ബാക്ക്ഗ്രൗണ്ടിൽ സ്റ്റാർട്ട് ചെയ്യുന്നു
+        # 🔄 ഇവിടെ നമ്മൾ പുതിയ പിംഗ് ടാസ്ക് ബാക്ക്ഗ്രൗണ്ടിൽ സ്റ്റാർട്ട് ചെയ്യുന്നു
         asyncio.create_task(send_ping(self))
 
         stats = await clientDB.command('dbStats')
