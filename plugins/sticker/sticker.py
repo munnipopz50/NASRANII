@@ -1,64 +1,251 @@
-from pyrogram import Client, filters
-# from pyrogram.types import InputStickerSetItem
-from PIL import Image
-from info import *
 import os
+import requests
+from PIL import Image
+from pyrogram import Client, filters
+from info import *
+# ================= CONFIG =================
 
-from pyrogram.raw.types import InputStickerSetItem
+bot = Client(
+    "StickerBot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN
+)
 
-app = Client("sticker_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+# ================= STORAGE =================
+TEMP_FILES = {}
+USER_PACKS = {}
 
-# 1. /kang കമാൻഡ് - ഫോട്ടോയെ സ്റ്റിക്കറാക്കി മാറ്റാൻ
-@Client.on_message(filters.command("kang") & filters.reply)
-def make_sticker(client, message):
-    replied = message.reply_to_message
-    if replied.photo or replied.document:
-        msg = message.reply("പ്രോസസ്സ് ചെയ്യുന്നു, ദയവായി കാത്തിരിക്കുക...")
-        path = client.download_media(replied)
-        
-        # സ്റ്റിക്കർ സൈസിലേക്ക് (512x512) മാറ്റുന്നു
-        img = Image.open(path)
+# ================= SAVE FILE =================
+@Client.on_message(
+    filters.private &
+    (
+        filters.photo |
+        filters.document |
+        filters.video
+    )
+)
+async def save_file(client, message):
+
+    msg = await message.reply_text(
+        "📥 Downloading..."
+    )
+
+    file_path = await message.download()
+
+    file_type = None
+
+    # ================= PHOTO =================
+    if message.photo:
+
+        new_path = (
+            f"{message.from_user.id}.png"
+        )
+
+        # Open image
+        img = Image.open(file_path)
+
+        # Resize image
         img.thumbnail((512, 512))
-        img.save("sticker.webp", "WEBP")
-        
-        # സ്റ്റിക്കർ അയക്കുന്നു
-        client.send_sticker(message.chat.id, "sticker.webp")
-        msg.delete()
-        
-        os.remove(path)
-        os.remove("sticker.webp")
-    else:
-        message.reply("ദയവായി ഒരു ഫോട്ടോയ്ക്ക് മറുപടിയായി '/kang' എന്ന് അയക്കുക.")
 
-# 2. /pack കമാൻഡ് - സ്റ്റിക്കർ പാക്ക് നിർമ്മിക്കാൻ/ആഡ് ചെയ്യാൻ
-@Client.on_message(filters.command("pack") & filters.reply)
-def add_to_pack(client, message):
-    replied = message.reply_to_message
-    if replied.sticker:
-        # പാക്കിന്റെ പേര് (യുണീക്ക് ആയിരിക്കണം)
-        pack_name = f"sticker_pack_{message.from_user.id}"
-        pack_title = f"{message.from_user.first_name}'s Pack"
-        
+        # Save PNG
+        img.save(
+            new_path,
+            "PNG"
+        )
+
         try:
-            # ആദ്യം പാക്ക് ഉണ്ടോ എന്ന് പരിശോധിക്കുന്നു, ഇല്ലെങ്കിൽ നിർമ്മിക്കുന്നു
-            client.create_sticker_set(
-                user_id=message.from_user.id,
-                name=pack_name,
-                title=pack_title,
-                stickers=[InputStickerSetItem(file_id=replied.file_id, emojis="⭐")]
-            )
-            message.reply("പുതിയ സ്റ്റിക്കർ പാക്ക് വിജയകരമായി നിർമ്മിച്ചു!")
-        except Exception:
-            # പാക്ക് നിലവിലുണ്ടെങ്കിൽ സ്റ്റിക്കർ മാത്രം ആഡ് ചെയ്യുന്നു
-            try:
-                client.add_sticker_to_set(
-                    user_id=message.from_user.id,
-                    name=pack_name,
-                    sticker=InputStickerSetItem(file_id=replied.file_id, emojis="⭐")
-                )
-                message.reply("ഈ സ്റ്റിക്കർ നിങ്ങളുടെ പാക്കിലേക്ക് വിജയകരമായി ചേർത്തു!")
-            except Exception as e:
-                message.reply(f"പിശക് സംഭവിച്ചു: {e}")
-    else:
-        message.reply("ദയവായി ഒരു സ്റ്റിക്കറിന് മറുപടിയായി '/pack' എന്ന് അയക്കുക.")
+            os.remove(file_path)
+        except:
+            pass
 
+        file_path = new_path
+
+        file_type = "photo"
+
+    # ================= VIDEO =================
+    elif file_path.endswith(".webm"):
+
+        file_type = "video"
+
+    else:
+
+        try:
+            os.remove(file_path)
+        except:
+            pass
+
+        return await msg.edit_text(
+            "❌ Only Photo or .webm supported."
+        )
+
+    TEMP_FILES[
+        message.from_user.id
+    ] = {
+        "path": file_path,
+        "type": file_type
+    }
+
+    await msg.edit_text(
+        "✅ File Saved\n\n"
+        "Now send:\n"
+        "/kang PackName"
+    )
+
+# ================= CREATE PACK =================
+@Client.on_message(
+    filters.command("kang")
+)
+async def kang_pack(client, message):
+
+    user_id = message.from_user.id
+
+    if user_id not in TEMP_FILES:
+
+        return await message.reply_text(
+            "❌ Send photo or .webm first."
+        )
+
+    if len(message.command) < 2:
+
+        return await message.reply_text(
+            "Usage:\n/kang PackName"
+        )
+
+    pack_title = message.command[1]
+
+    data = TEMP_FILES[user_id]
+
+    file_path = data["path"]
+
+    file_type = data["type"]
+
+    msg = await message.reply_text(
+        "📤 Creating Sticker Pack..."
+    )
+
+    try:
+
+        bot_username = (
+            await client.get_me()
+        ).username
+
+        short_name = (
+            f"{pack_title}_{user_id}"
+            f"_by_{bot_username}"
+        ).lower()
+
+        url = (
+            f"https://api.telegram.org/bot"
+            f"{BOT_TOKEN}/createNewStickerSet"
+        )
+
+        payload = {
+            "user_id": user_id,
+            "name": short_name,
+            "title": pack_title,
+            "emojis": "🔥"
+        }
+
+        # ================= PHOTO STICKER =================
+        if file_type == "photo":
+
+            with open(file_path, "rb") as sticker:
+
+                response = requests.post(
+                    url,
+                    data=payload,
+                    files={
+                        "png_sticker": sticker
+                    }
+                )
+
+        # ================= VIDEO STICKER =================
+        else:
+
+            with open(file_path, "rb") as sticker:
+
+                response = requests.post(
+                    url,
+                    data=payload,
+                    files={
+                        "webm_sticker": sticker
+                    }
+                )
+
+        result = response.json()
+
+        # ================= SUCCESS =================
+        if result.get("ok"):
+
+            if user_id not in USER_PACKS:
+                USER_PACKS[user_id] = []
+
+            USER_PACKS[user_id].append(
+                {
+                    "title": pack_title,
+                    "short": short_name
+                }
+            )
+
+            await msg.edit_text(
+                f"✅ Sticker Pack Created!\n\n"
+                f"https://t.me/addstickers/"
+                f"{short_name}"
+            )
+
+        else:
+
+            await msg.edit_text(
+                f"❌ Error:\n"
+                f"{result}"
+            )
+
+    except Exception as e:
+
+        await msg.edit_text(
+            f"❌ Error:\n{e}"
+        )
+
+    # ================= CLEANUP =================
+    try:
+        os.remove(file_path)
+    except:
+        pass
+
+    TEMP_FILES.pop(user_id, None)
+
+# ================= PACK LIST =================
+@Client.on_message(
+    filters.command("packs")
+)
+async def packs_list(client, message):
+
+    user_id = message.from_user.id
+
+    if user_id not in USER_PACKS:
+
+        return await message.reply_text(
+            "❌ No packs found."
+        )
+
+    text = "📦 Your Sticker Packs\n\n"
+
+    for num, pack in enumerate(
+        USER_PACKS[user_id],
+        start=1
+    ):
+
+        text += (
+            f"{num}. "
+            f"{pack['title']}\n"
+            f"https://t.me/addstickers/"
+            f"{pack['short']}\n\n"
+        )
+
+    await message.reply_text(
+        text,
+        disable_web_page_preview=True
+    )
+
+# ================= START BOT =================
