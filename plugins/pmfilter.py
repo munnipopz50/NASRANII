@@ -520,7 +520,24 @@ async def batch_filter(client, message):
 )
 async def give_filter(client, message):
 
-    # 🚫 Delete forwarded messages
+    # 1. ലിങ്ക് / യൂസർനെയിം ഡിലീറ്റ് ചെയ്യുന്ന ബ്ലോക്ക് ഏറ്റവും മുകളിൽ കൊണ്ടുവരിക
+    if message.text:
+        if re.search(
+            r"(https?://|t\.me/|telegram\.me/|telegram\.dog/|www\.|@\w+)",
+            message.text,
+            re.IGNORECASE
+        ):
+            # ബോട്ട് തന്നെ അയക്കുന്ന മെസ്സേജ് ആണെങ്കിൽ ഡിലീറ്റ് ചെയ്യേണ്ടതില്ല (optional)
+            if message.from_user and message.from_user.is_bot:
+                pass
+            else:
+                try:
+                    await message.delete()
+                except:
+                    pass
+                return
+
+    # 2. Forwarded മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്ന ബ്ലോക്ക്
     if (
         message.forward_date
         or message.forward_from
@@ -533,18 +550,8 @@ async def give_filter(client, message):
             pass
         return
 
-    # 🚫 Delete links / usernames
-    if message.text:
-        if re.search(
-            r"(https?://|t\.me/|telegram\.me/|telegram\.dog/|www\.|@\w+)",
-            message.text,
-            re.IGNORECASE
-        ):
-            try:
-                await message.delete()
-            except:
-                pass
-            return
+    # തുടർന്ന് നിങ്ങളുടെ ബാക്കി കോഡുകൾ (PRIVATE CHAT, GROUP CHAT തുടങ്ങിയവ...)
+    # ...
 
     # 👉 PRIVATE CHAT
     if message.chat.type == enums.ChatType.PRIVATE:
