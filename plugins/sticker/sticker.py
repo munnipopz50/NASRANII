@@ -18,16 +18,17 @@ def resize_image(photo_path):
 
 @Client.on_message(filters.command("kang") & filters.reply)
 async def kang_image(client, message):
-    if not message.reply_to_message.photo:
+    # ഫോട്ടോ ഉണ്ടോ എന്ന് ഉറപ്പുവരുത്താൻ
+    if not message.reply_to_message or not message.reply_to_message.photo:
         await message.reply_text("ദയവായി ഒരു ഫോട്ടോയ്ക്ക് റിപ്ലൈ ആയി ഈ കമാൻഡ് അയക്കുക!")
         return
 
     status = await message.reply_text("ഫോട്ടോ സ്റ്റിക്കർ ആക്കി മാറ്റുന്നു... ⏳")
     
-    # ഫോട്ടോ ഡൗൺലോഡ് ചെയ്യുന്നു
-    photo_path = await message.reply_to_message.download()
-
     try:
+        # ഡൗൺലോഡ് ചെയ്യുന്നത് നേരിട്ട് ഫയൽ പാത്ത് ആയി എടുക്കുന്നു
+        photo_path = await message.reply_to_message.download(file_name="temp_photo.jpg")
+        
         # സ്റ്റിക്കർ റീസൈസ് ചെയ്യുന്നു
         sticker_file = resize_image(photo_path)
         
@@ -36,18 +37,12 @@ async def kang_image(client, message):
         
         # താൽക്കാലിക ഫയലുകൾ ഡിലീറ്റ് ചെയ്യുന്നു
         await status.delete()
-        if os.path.exists(photo_path):
-            os.remove(photo_path)
-        if os.path.exists(TEMP_STICKER):
-            os.remove(TEMP_STICKER)
+        if os.path.exists(photo_path): os.remove(photo_path)
+        if os.path.exists(TEMP_STICKER): os.remove(TEMP_STICKER)
 
     except Exception as e:
         await status.edit(f"❌ Error: {e}")
-        # എറർ വന്നാലും ഫയലുകൾ നീക്കം ചെയ്യുന്നു
-        if os.path.exists(photo_path):
-            os.remove(photo_path)
-        if os.path.exists(TEMP_STICKER):
-            os.remove(TEMP_STICKER)
+        print(f"Error in kang command: {e}") # ടെർമിനലിൽ എറർ കാണാൻ
 
 @Client.on_message(filters.command("pack") & filters.reply)
 async def make_pack(client, message):
