@@ -638,9 +638,8 @@ async def give_filter(client, message):
                 try:
                     # ✅ ഇവിടെ spellcheck ലോജിക്കും ഫംഗ്ഷൻ പേരും അപ്ഡേറ്റ് ചെയ്തു
                     if settings.get('spellcheck', False) and message.text and not message.text.startswith("/"):
-                        await message.reply_text(f"🔎 **Searching for {content} movie...**")
-                        search_msg = await message.reply_text("🔎 **Searching for your movie...**")
-                        
+                        search_msg = await message.reply_text(f"🔎 **Searching for {content} movie...**")
+                         
                         # ബാക്ക്ഗ്രൗണ്ടിൽ ഡിലീറ്റ് ചെയ്യാൻ ടാസ്ക് തുടങ്ങുന്നു (5 സെക്കൻഡിന് ശേഷം ഡിലീറ്റ് ആകാൻ)
                         asyncio.create_task(self_destruct_message(search_msg, 5))
                         return await advantage_spellcheck(client, message)
@@ -656,8 +655,7 @@ async def give_filter(client, message):
                     
                     # ✅ ഇവിടെയും അപ്ഡേറ്റ് ചെയ്തു
                     if settings.get('spellcheck', False) and message.text and not message.text.startswith("/"):
-                        await message.reply_text(f"🔎 **Searching for {content} movie...**")
-                        search_msg = await message.reply_text("🔎 **Searching for your movie...**")
+                        search_msg = await message.reply_text(f"🔎 **Searching for {content} movie...**")
                         
                         # ബാക്ക്ഗ്രൗണ്ടിൽ ഡിലീറ്റ് ചെയ്യാൻ ടാസ്ക് തുടങ്ങുന്നു (5 സെക്കൻഡിന് ശേഷം ഡിലീറ്റ് ആകാൻ)
                         asyncio.create_task(self_destruct_message(search_msg, 5))
