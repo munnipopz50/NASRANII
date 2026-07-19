@@ -4413,6 +4413,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
 async def create_telegraph_page(username, search, files, settings):
     content = "" 
 #    username = message.from_user.mention
+	JRMA_URL = SHORTLINK_URL
+    stream_link = f"{JRMA_URL}/watch/{file_id}"	
     imdb = await get_poster(search) if settings.get("imdb", False) else None
     if settings.get("imdb", False):
     	imdb = await get_poster(search)
@@ -4443,7 +4445,7 @@ async def create_telegraph_page(username, search, files, settings):
             f"{temp.U_NAME}?start=files_{file.file_id}"
         )
 
-        content += f'📄 <a href="{link}">{file_name}</a><br>'
+        content += f'📄 <a href="{stream_link}">{file_size}-{file_name}</a><br>'
 
     page = telegraph.post(
         title=search[:150],
