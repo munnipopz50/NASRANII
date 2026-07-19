@@ -8,7 +8,7 @@ FONT_PATH = "arial.ttf"  # അല്ലെങ്കിൽ നിങ്ങളു�
 SIZE = (512, 512)
 
 @Client.on_message(filters.command("sticker"))
-async def text_to_sticker(client: Client, message: Message):
+async def text_to_sticker(client, message):
 
     if len(message.command) > 1:
         text = " ".join(message.command[1:])
