@@ -4473,7 +4473,7 @@ async def create_telegraph_page(username, search, files, settings):
     content += "<br><br><b>📂 Available Files</b><br><br>"
 
     for file in files:
-    	EMOJI = random.choice(RUN_STRINGS)
+        EMOJI = random.choice(RUN_STRINGS)
         file_size = get_size(file.file_size)
         file_name = file.file_name or "Unknown File"
         stream_link = f"{JRMA_URL}/watch/{file.file_id}"    
