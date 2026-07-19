@@ -38,6 +38,13 @@ BATCH_FILES = {}
 
 @Client.on_message(filters.command("telegraph") & filters.group)
 async def telegraph_settings(client, message):
+    try:
+        await client.send_reaction(
+            chat_id=message.chat.id,
+            message_id=message.id,
+            emoji="👍"
+        )
+    except Exception as e:
 
     if len(message.command) < 2:
         return await message.reply_text(
