@@ -45,19 +45,10 @@ from aiohttp import web
 import os
 import re
 import asyncio
-
-
-# 📺 വെബ്‌സൈറ്റിൽ പ്ലേ ചെയ്യാനും നേരിട്ട് ഡൗൺലോഡ് ചെയ്യാനുമുള്ള HTML പ്ലെയർ പേജ്
-import re
 import math
 import urllib.parse  # 💡 ലിങ്ക് എൻകോഡ് ചെയ്യാൻ ഇത് വേണം
-from aiohttp import web
 
 PORT = int(os.environ.get("PORT", 8080))
-
-
-
-
 
 def get_readable_file_size(size_in_bytes) -> str:
     if size_in_bytes == 0:
@@ -129,8 +120,7 @@ async def stream_handler(request):
     protocol = "https" if request.secure or request.headers.get('X-Forwarded-Proto', '') == 'https' else "http"
     local_download_url = f"{protocol}://{host}/download_file/{file_id}"
 
-    # 🛠️ MX Player-ന് വേണ്ടിയുള്ള ശരിയായ ആൻഡ്രോയിഡ് ഇന്റന്റ് ഘടന (Intent Syntax)
-    # 🛠️ ലിങ്കിന്റെ അവസാനം .m3u എന്ന് കാണിക്കാനും MX Player നേരിട്ട് ഓപ്പൺ ചെയ്യാനുമുള്ള കൃത്യമായ ഫോർമാറ്റ്
+    # 🛠️ MX Player-ന് വേണ്ടിയുള്ള ശരിയായ ആൻഡ്രോയിഡ് ഇന്റന്റ് ഘടന
     mx_url = f"intent:{local_download_url}#Intent;type=video/*;package=com.mxtech.videoplayer.ad;S.title={urllib.parse.quote(display_name)};S.file_extension=.m3u;end"
 
     # 🛠️ VLC Player-ന് വേണ്ടിയുള്ള ശരിയായ ലിങ്ക് ഘടന
@@ -160,23 +150,17 @@ async def stream_handler(request):
             .header a {{ color: #00d2ff; text-decoration: none; font-weight: bold; font-size: 16px; display: block; margin-top: 10px; }}
             .player-container {{ width: 95%; max-width: 650px; background: #1f1f1f; padding: 25px; border-radius: 15px; box-shadow: 0px 8px 25px rgba(0,0,0,0.5); text-align: center; box-sizing: border-box; }}
             .poster-img {{ width: 100%; max-width: 220px; height: 320px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0px 5px 15px rgba(0,0,0,0.6); object-fit: cover; border: 2px solid #333; }}
-            
-            /* 📺 വീഡിയോ കൺട്രോളുകൾ */
             video {{ width: 100%; background: #000; border-radius: 10px; margin-top: 15px; border: 1px solid #444; }}
-            
             .file-details {{ background: #292929; padding: 15px; border-radius: 10px; text-align: left; margin-bottom: 15px; font-size: 14px; border-left: 4px solid #ff00de; }}
             .file-details p {{ margin: 6px 0; word-break: break-all; line-height: 1.4; }}
             .file-details strong {{ color: #00d2ff; }}
-            
             .movie-meta {{ background: #292929; padding: 12px; border-radius: 10px; margin-bottom: 15px; font-size: 14px; text-align: center; border-left: 4px solid #00d2ff; }}
             .movie-meta p {{ margin: 5px 0; }}
-            
             .apps-container {{ display: flex; justify-content: space-around; gap: 10px; margin: 20px 0 10px 0; flex-wrap: wrap; }}
             .app-btn {{ flex: 1; min-width: 140px; padding: 12px; font-weight: bold; text-decoration: none; border-radius: 8px; font-size: 14px; color: white; transition: 0.2s; text-align: center; display: inline-flex; align-items: center; justify-content: center; }}
             .vlc-btn {{ background-color: #ff8800; box-shadow: 0 4px 10px rgba(255,136,0,0.3); }}
             .mx-btn {{ background-color: #0055ff; box-shadow: 0 4px 10px rgba(0,85,255,0.3); }}
             .app-btn:hover {{ transform: translateY(-2px); }}
-
             .download-btn {{ display: block; width: 100%; background: linear-gradient(135deg, #00c853, #00b0ff); color: white; padding: 12px 20px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 30px; margin-top: 15px; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,200,83,0.4); box-sizing: border-box; }}
             .download-btn:hover {{ transform: scale(1.02); }}
         </style>
@@ -197,13 +181,11 @@ async def stream_handler(request):
 
             {movie_info}
             
-            <!-- 📺 വീഡിയോ പ്ലെയർ: ഫുൾ സ്ക്രീൻ സപ്പോർട്ടിനായി allowfullscreen, playsinline, webkit-playsinline എന്നിവ ചേർത്തു -->
             <video controls autoplay playsinline webkit-playsinline allowfullscreen="true">
                 <source src="{local_download_url}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
 
-            <!-- 📱 ആപ്പ് ബട്ടണുകൾ -->
             <div class="apps-container">
                 <a href="{vlc_url}" class="app-btn vlc-btn">🧡 Watch in VLC</a>
                 <a href="{mx_url}" class="app-btn mx-btn">💙 Watch in MX Player</a>
@@ -216,21 +198,15 @@ async def stream_handler(request):
     """
     return web.Response(text=html_content, content_type='text/html')
 
-
-
-
-
-
-# 📥 [ADVANCED STREAM ENGINE WITH RANGE & TOTAL SIZE SUPPORT]
-
-# 📥 [FAST STREAM ENGINE - FIXED PYROGRAM CHUNK CONTROLLER FOR SEEKING]
-
-
-# 📥 [FAST STREAM ENGINE WITH FIXED PYROGRAM CHUNK CONTROLLER FOR SEEKING]
 async def download_file_handler(request):
     file_id = request.match_info.get('file_id')
     if not file_id:
         return web.Response(text="Invalid File ID", status=400)
+
+    # request.app['bot'] വഴി ശരിയായ പൈറോഗ്രാം ക്ലയന്റ് ഒബ്ജക്റ്റ് എടുക്കുന്നു
+    bot_client = request.app.get('bot')
+    if not bot_client:
+        return web.Response(text="Bot client not initialized in web server", status=500)
 
     try:
         file_size = None
@@ -252,7 +228,6 @@ async def download_file_handler(request):
 
         range_header = request.headers.get('Range', None)
 
-        # 💡 MX/VLC പ്ലെയറുകൾക്ക് കൃത്യമായി മനസ്സിലാകാൻ വേണ്ടിയുള്ള ഹെഡ്ഡറുകൾ
         headers = {
             'Content-Type': 'video/mp4',
             'Accept-Ranges': 'bytes',
@@ -262,55 +237,49 @@ async def download_file_handler(request):
             'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges'
         }
 
-        # Pyrogram സാധാരണ ഉപയോഗിക്കുന്ന ചങ്ക് സൈസ് (1MB)
         CHUNK_SIZE = 1024 * 1024 
 
-        # 💡 സിനിമ അടിച്ചു വിടുമ്പോൾ ഉള്ള കണക്ഷൻ ലോജിക് (Seek & Buffering)
         if range_header and file_size:
             match = re.match(r'bytes=(\d+)-(\d*)', range_header)
             if match:
                 start = int(match.group(1))
                 end = int(match.group(2)) if match.group(2) else file_size - 1
 
-                # ചങ്ക് ഓഫ്‌സെറ്റ് കണക്കാക്കുന്നു
                 chunk_offset = start // CHUNK_SIZE
 
-                # 206 Partial Content സ്റ്റാറ്റസ് നൽകുന്നു (ഇതാണ് ലോഡിങ് കറങ്ങാൻ സഹായിക്കുന്നത്)
                 headers['Content-Range'] = f'bytes {start}-{end}/{file_size}'
                 headers['Content-Length'] = str(end - start + 1)
-                headers['Connection'] = 'keep-alive' # കറങ്ങുമ്പോൾ കണക്ഷൻ കട്ട് ആകാതിരിക്കാൻ
+                headers['Connection'] = 'keep-alive'
 
                 response = web.StreamResponse(status=206, reason='Partial Content', headers=headers)
                 await response.prepare(request)
 
                 current_position = chunk_offset * CHUNK_SIZE
 
-                async for chunk in app.stream_media(tg_file, offset=chunk_offset):
+                async toggle_stream = bot_client.stream_media(tg_file, offset=chunk_offset)
+                async for chunk in toggle_stream:
                     if current_position + len(chunk) > start:
-                        # ആദ്യ ചങ്കിലെ ആവശ്യമില്ലാത്ത ഭാഗം ഒഴിവാക്കുന്നു
                         if current_position < start:
                             chunk = chunk[start - current_position:]
 
-                        # ആവശ്യപ്പെട്ട ലിമിറ്റ് കഴിഞ്ഞാൽ നിർത്തുന്നു
                         if current_position + len(chunk) > end:
                             chunk = chunk[:end - current_position + 1]
                             try:
                                 await response.write(chunk)
-                                await response.drain() # 🔄 ഡാറ്റ പ്ലെയറിലേക്ക് ഉടൻ പുഷ് ചെയ്യുന്നു (കറക്കം മാറാൻ)
+                                await response.drain()
                             except:
                                 break
                             break
 
                         try:
                             await response.write(chunk)
-                            await response.drain() # 🔄 ഡാറ്റ പ്ലെയറിലേക്ക് ഉടൻ പുഷ് ചെയ്യുന്നു
+                            await response.drain()
                         except (ConnectionResetError, BrokenPipeError):
                             break
 
                     current_position += len(chunk)
                 return response
 
-        # ⏳ സാധാരണ പ്ലേ അല്ലെങ്കിൽ ഡൗൺലോഡ് രീതി
         if file_size:
             headers['Content-Length'] = str(file_size)
         headers['Connection'] = 'keep-alive'
@@ -318,7 +287,7 @@ async def download_file_handler(request):
         response = web.StreamResponse(status=200, reason='OK', headers=headers)
         await response.prepare(request)
 
-        async for chunk in app.stream_media(tg_file):
+        async for chunk in bot_client.stream_media(tg_file):
             try:
                 await response.write(chunk)
                 await response.drain()
@@ -330,19 +299,17 @@ async def download_file_handler(request):
         logging.error(f"Streaming Engine Error: {e}")
         return web.Response(text="Error playing file.", status=500)
 
-
-
-
-
-# 🌐 Меയിൻ ലിങ്ക് പേജ്
 async def main_page_handler(request):
     return web.Response(
         text="🚀 Nasrani Bot Stream Server is Live and Running via JustRunMy.App!",
         content_type="text/plain"
     )
 
-async def start_jrma_server():
+async def start_jrma_server(bot_instance):
     server = web.Application()
+    # ബോട്ട് ഇൻസ്റ്റൻസ് വെബ് ആപ്പിലേക്ക് സേവ് ചെയ്യുന്നു (handlers-ൽ ഉപയോഗിക്കാൻ വേണ്ടി)
+    server['bot'] = bot_instance
+    
     server.router.add_get('/', main_page_handler)
     server.router.add_get('/watch/{file_id}', stream_handler)
     server.router.add_get('/download_file/{file_id}', download_file_handler)
@@ -354,13 +321,10 @@ async def start_jrma_server():
     await site.start()
     logging.info(f"🚀 JustRunMy.App Web Server active via HTTPS on Port {PORT}")
 
-
-# 🔄 [UPDATED CONTROLLER FOR CRON-JOB.ORG API PING & 3-MIN TELEGRAM ALERTS]
 async def send_ping(client):
     CRON_API_KEY = "H0kpdbZCFdx7g38U9dOYdIMjXPNSA03IOzN1d4yorWY="
     YOUR_RENDER_URL = "https://nasranii.onrender.com/"
 
-    # ബോട്ട് ഓൺ ആയി 2 മിനിറ്റ് കഴിഞ്ഞ് ആദ്യം Cron-Job ലിങ്ക് വെരിഫൈ ചെയ്യും
     await asyncio.sleep(120) 
 
     cron_api_url = "https://api.cron-job.org/jobs"
@@ -369,7 +333,6 @@ async def send_ping(client):
         "Content-Type": "application/json"
     }
 
-    # 🔗 Cron-Job.org-ൽ നിങ്ങളുടെ Render ലിങ്ക് ഓട്ടോമാറ്റിക് ആയി ആഡ് ചെയ്യുന്നു
     try:
         async with aiohttp.ClientSession(headers=cron_headers) as session:
             async with session.get(cron_api_url) as resp:
@@ -399,7 +362,6 @@ async def send_ping(client):
     except Exception as e:
         logging.error(f"Cron-Job Auto-Setup Error: {e}")
 
-    # 🟢 ഓരോ 3 മിനിറ്റിലും LOG_CHANNEL-ലേക്ക് അലേർട്ട് അയക്കുന്ന ബാക്ക്ഗ്രൗണ്ട് ലൂപ്പ്
     while True:
         try:
             current_time = datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%Y-%m-%d %I:%M:%S %p')
@@ -414,8 +376,7 @@ async def send_ping(client):
         except Exception as tg_err:
             logging.error(f"Telegram Ping Log Failed: {tg_err}")
 
-        await asyncio.sleep(180) # കൃത്യം 3 മിനിറ്റ് (180 സെക്കൻഡ്) ഇടവേള
-
+        await asyncio.sleep(180)
 
 class Bot(Client):
 
@@ -438,9 +399,9 @@ class Bot(Client):
         await Media.ensure_indexes()
         await Media2.ensure_indexes()
 
-        await start_jrma_server()
+        # വെബ് സെർവർ സ്റ്റാർട്ട് ചെയ്യുമ്പോൾ self (bot instance) കൂടി പാസ്സ് ചെയ്യുന്നു
+        await start_jrma_server(self)
 
-        # 🔄 ഇവിടെ നമ്മൾ പുതിയ പിംഗ് ടാസ്ക് ബാക്ക്ഗ്രൗണ്ടിൽ സ്റ്റാർട്ട് ചെയ്യുന്നു
         asyncio.create_task(send_ping(self))
 
         stats = await clientDB.command('dbStats')
@@ -468,7 +429,6 @@ class Bot(Client):
         custom_time = now.strftime("%H:%M:%S %p")
         await self.send_message(chat_id=LOG_CHANNEL, text=script.RESTART_TXT.format(today, custom_time))
         await resume_index_jobs(self)
-#        await send_active_notification(self)
 
     async def stop(self, *args):
         await super().stop()
@@ -490,10 +450,8 @@ class Bot(Client):
                 yield message
                 current += 1
 
-
 async def send_active_notification(bot):
     chats = await db.get_all_chats()
-
     for chat in chats:
         try:
             await bot.send_message(
@@ -503,8 +461,6 @@ async def send_active_notification(bot):
             )
         except Exception as e:
             print(f"{chat['id']} : {e}")
-
-
 
 app = Bot()
 app.run()
