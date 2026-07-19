@@ -16,45 +16,45 @@ def resize_image(photo_path):
         im.save(TEMP_STICKER, "WEBP", quality=95)
     return TEMP_STICKER
 
+from pyrogram import Client, filters
+from PIL import Image
+import os
+
+# ശ്രദ്ധിക്കുക: നിങ്ങളുടെ പ്രധാന ഫയലിലെ ക്ലയന്റ് നെയിം (ഉദാ: Bot, App, userbot) ഇവിടെ നൽകുക
+# മിക്കവാറും ഇത് 'Bot' എന്നോ 'app' എന്നോ ആയിരിക്കും.
+# നിങ്ങളുടെ main.py ഫയലിൽ 'App = Client(...)' എന്നാണെങ്കിൽ ഇവിടെയും 'App' എന്ന് കൊടുക്കുക.
 @Client.on_message(filters.command("kang") & filters.reply)
 async def kang_image(client, message):
-    # ഫോട്ടോ ഉണ്ടോ എന്ന് ഉറപ്പുവരുത്താൻ
+    # ലോഗ് ചെയ്യാൻ പ്രിന്റ് ചേർത്തു
+    print("Kang command triggered!") 
+    
     if not message.reply_to_message or not message.reply_to_message.photo:
         await message.reply_text("ദയവായി ഒരു ഫോട്ടോയ്ക്ക് റിപ്ലൈ ആയി ഈ കമാൻഡ് അയക്കുക!")
         return
 
     status = await message.reply_text("ഫോട്ടോ സ്റ്റിക്കർ ആക്കി മാറ്റുന്നു... ⏳")
     
+    # ഫയൽ പാത്ത് യുണീക്ക് ആക്കാൻ (ഒരേ സമയം പലർ ഉപയോഗിച്ചാൽ പ്രശ്നം വരാതിരിക്കാൻ)
+    # message.from_user.id ഉപയോഗിക്കുന്നു
+    user_id = message.from_user.id
+    photo_path = f"photo_{user_id}.jpg"
+    sticker_path = f"sticker_{user_id}.webp"
+
     try:
-        # ഡൗൺലോഡ് ചെയ്യുന്നത് നേരിട്ട് ഫയൽ പാത്ത് ആയി എടുക്കുന്നു
-        photo_path = await message.reply_to_message.download(file_name="temp_photo.jpg")
+        await message.reply_to_message.download(file_name=photo_path)
         
-        # സ്റ്റിക്കർ റീസൈസ് ചെയ്യുന്നു
-        sticker_file = resize_image(photo_path)
+        with Image.open(photo_path) as im:
+            im = im.convert("RGBA")
+            im.thumbnail((512, 512))
+            im.save(sticker_path, "WEBP", quality=95)
         
-        # സ്റ്റിക്കർ അയക്കുന്നു
-        await message.reply_sticker(sticker_file)
-        
-        # താൽക്കാലിക ഫയലുകൾ ഡിലീറ്റ് ചെയ്യുന്നു
+        await message.reply_sticker(sticker_path)
         await status.delete()
-        if os.path.exists(photo_path): os.remove(photo_path)
-        if os.path.exists(TEMP_STICKER): os.remove(TEMP_STICKER)
 
     except Exception as e:
         await status.edit(f"❌ Error: {e}")
-        print(f"Error in kang command: {e}") # ടെർമിനലിൽ എറർ കാണാൻ
-
-@Client.on_message(filters.command("pack") & filters.reply)
-async def make_pack(client, message):
-    if not message.reply_to_message.sticker:
-        await message.reply_text("ഞാൻ ഉണ്ടാക്കി തന്ന സ്റ്റിക്കറിന് റിപ്ലൈ ആയി വേണം `/pack` എന്ന് അയക്കാൻ!")
-        return
-
-    user_name = message.from_user.first_name
-
-    await message.reply_text(
-        f"ഹലോ {user_name},\n\nഈ സ്റ്റിക്കർ നിങ്ങളുടെ സ്വന്തം പാക്കിലേക്ക് ചേർക്കാൻ താഴെ പറയുന്നവ ചെയ്യുക:\n\n"
-        "1. @Stickers ബോട്ട് സ്റ്റാർട്ട് ചെയ്യുക.\n"
-        "2. `/newpack` എന്ന് അയക്കുക.\n"
-        "3. മുകളിലെ സ്റ്റിക്കർ അവർക്ക് ഫോർവേഡ് ചെയ്യുക."
-    )
+        print(f"Error: {e}")
+    
+    # ഫയലുകൾ ഡിലീറ്റ് ചെയ്യുന്നു
+    if os.path.exists(photo_path): os.remove(photo_path)
+    if os.path.exists(sticker_path): os.remove(sticker_path)
