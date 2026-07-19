@@ -45,6 +45,7 @@ async def telegraph_settings(client, message):
             emoji="👍"
         )
     except Exception as e:
+        logger.exception(e)
 
     if len(message.command) < 2:
         return await message.reply_text(
