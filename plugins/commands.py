@@ -1,3 +1,9 @@
+from pyrogram.types import Message
+# ടെലിഗ്രാമിന്റെ raw ഫങ്ക്ഷനുകൾ ഇംപോർട്ട് ചെയ്യുന്നു
+from pyrogram.raw import functions
+from pyrogram.raw.types import ReactionEmoji
+
+
 from info import *
 
 import os
@@ -76,11 +82,15 @@ async def telegraph_settings(client, message):
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     try:
-        await client.send_reaction(
-            chat_id=message.chat.id,
-            message_id=message.id,
-            emoji="❤️"  # നിങ്ങൾക്ക് ഇഷ്ടമുള്ള ഇമോജി ഇവിടെ നൽകാം
+        # Pyrogram മാറ്റാതെ, raw api ഉപയോഗിച്ച് റിയാക്ഷൻ അയക്കുന്നു
+        await client.invoke(
+            functions.messages.SendReaction(
+                peer=await client.resolve_peer(message.chat.id),
+                msg_id=message.id,
+                reaction=[ReactionEmoji(emoticon="❤️")]
+            )
         )
+        print("Reaction sent using Pyrogram Raw API!")
     except Exception as e:
         print(f"Error sending reaction: {e}")
     if message.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
