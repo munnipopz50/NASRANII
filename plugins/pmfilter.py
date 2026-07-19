@@ -2176,7 +2176,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                                 [
                                     InlineKeyboardButton(
                                         f"STREAM",
-                                        url = "stream_link"
+                                        url = stream_link
                                     )
                                 ],                                
                                 [
