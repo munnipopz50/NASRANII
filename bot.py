@@ -429,7 +429,7 @@ class Bot(Client):
         now = datetime.now(tz)
         custom_time = now.strftime("%H:%M:%S %p")
         await self.send_message(chat_id=LOG_CHANNEL, text=script.RESTART_TXT.format(today, custom_time))
-        await resume_index_jobs(self)
+#        await resume_index_jobs(self)
 
     async def stop(self, *args):
         await super().stop()
