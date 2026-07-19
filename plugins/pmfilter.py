@@ -4456,18 +4456,38 @@ async def create_telegraph_page(username, search, files, settings):
         if poster:
             content = f'<img src="{poster}"><br>' + content
 
+#    content += "<br><br><b>📂 Available Files</b><br><br>"
+
+#    for file in files:
+#        file_size = get_size(file.file_size)
+#        file_name = file.file_name or "Unknown File"
+#        stream_link = f"{JRMA_URL}/watch/{file.file_id}"	
+#        link = (
+#            f"https://telegram.me/"
+#            f"{temp.U_NAME}?start=files_{file.file_id}"
+#        )
+
+#        content += f'📄 <a href="{stream_link}">{file_size}-{file_name}</a><br>'
+
+
     content += "<br><br><b>📂 Available Files</b><br><br>"
 
     for file in files:
+    	EMOJI = random.choice(RUN_STRINGS)
         file_size = get_size(file.file_size)
         file_name = file.file_name or "Unknown File"
-        stream_link = f"{JRMA_URL}/watch/{file.file_id}"	
+        stream_link = f"{JRMA_URL}/watch/{file.file_id}"    
         link = (
             f"https://telegram.me/"
             f"{temp.U_NAME}?start=files_{file.file_id}"
         )
 
-        content += f'📄 <a href="{stream_link}">{file_size}-{file_name}</a><br>'
+        # ഫയൽ പേരും വലുപ്പവും
+        content += f'{EMOJI} {file_size} - {file_name}<br>'
+        
+        # Download, Stream ലിങ്കുകൾ ഒരേ വരിയിൽ
+        content += f'<a href="{link}">📥 Download</a> - <a href="{stream_link}">📲 Watch Stream</a><br><br>'
+
 
     page = telegraph.post(
         title=search[:150],
