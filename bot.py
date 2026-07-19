@@ -82,16 +82,16 @@ async def stream_handler(request):
     try:
         from database.ia_filterdb import get_file_details
         from utils import get_poster 
-        
+
         files_ = await get_file_details(file_id)
         if files_:
             file_name = files_[0].file_name
             display_name = file_name 
             file_size = get_readable_file_size(files_[0].file_size)
-            
+
             search_query = file_name.replace(".", " ").split("(")[0].strip()
             imdb = await get_poster(search_query, file=file_name)
-            
+
             caption_poster = None
             if files_[0].caption:
                 match = re.search(r'(https?://[^\s]+(?:jpg|jpeg|png|webp))', files_[0].caption, re.IGNORECASE)
@@ -104,7 +104,7 @@ async def stream_handler(request):
                 f_genres = imdb.get("genres", "N/A")
                 f_year = imdb.get("year", "N/A")
                 f_rating = imdb.get("rating", "N/A")
-                
+
                 movie_title = f_title
                 movie_info = f"""
                 <div class="movie-meta">
@@ -128,13 +128,13 @@ async def stream_handler(request):
     host = request.headers.get('Host', '')
     protocol = "https" if request.secure or request.headers.get('X-Forwarded-Proto', '') == 'https' else "http"
     local_download_url = f"{protocol}://{host}/download_file/{file_id}"
-    
+
     # 🛠️ MX Player-ന് വേണ്ടിയുള്ള ശരിയായ ആൻഡ്രോയിഡ് ഇന്റന്റ് ഘടന (Intent Syntax)
     mx_url = f"intent:{local_download_url}#Intent;package=com.mxtech.videoplayer.ad;S.title={urllib.parse.quote(display_name)};end"
-    
+
     # 🛠️ VLC Player-ന് വേണ്ടിയുള്ള ശരിയായ ലിങ്ക് ഘടന
     vlc_url = f"vlc://{local_download_url}"
-    
+
     bot_link = "https://t.me/your_bot_username" 
 
     html_content = f"""
@@ -196,8 +196,8 @@ async def stream_handler(request):
 
             {movie_info}
             
-            <!-- 📺 വീഡിയോ പ്ലെയർ: അടിച്ചുവിടുമ്പോൾ കറക്കം മാറാൻ (preload="none" മാറ്റി ആവശ്യാനുസരണം ലോഡ് ചെയ്യാൻ ക്രമീകരിച്ചു) -->
-            <video controls autoplay playsinline>
+            <!-- 📺 വീഡിയോ പ്ലെയർ: ഫുൾ സ്ക്രീൻ സപ്പോർട്ടിനായി allowfullscreen, playsinline, webkit-playsinline എന്നിവ ചേർത്തു -->
+            <video controls autoplay playsinline webkit-playsinline allowfullscreen="true">
                 <source src="{local_download_url}" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
@@ -214,9 +214,9 @@ async def stream_handler(request):
     </html>
     """
     return web.Response(text=html_content, content_type='text/html')
-            
-        
-        
+
+
+
 
 
 
@@ -235,7 +235,7 @@ async def download_file_handler(request):
         file_size = None
         file_name = f"{file_id}.mp4"
         tg_file = None
-        
+
         try:
             from database.ia_filterdb import get_file_details
             files_ = await get_file_details(file_id)
@@ -250,7 +250,7 @@ async def download_file_handler(request):
             return web.Response(text="File not found in database", status=404)
 
         range_header = request.headers.get('Range', None)
-        
+
         # 💡 MX/VLC പ്ലെയറുകൾക്ക് കൃത്യമായി മനസ്സിലാകാൻ വേണ്ടിയുള്ള ഹെഡ്ഡറുകൾ
         headers = {
             'Content-Type': 'video/mp4',
@@ -270,26 +270,26 @@ async def download_file_handler(request):
             if match:
                 start = int(match.group(1))
                 end = int(match.group(2)) if match.group(2) else file_size - 1
-                
+
                 # ചങ്ക് ഓഫ്‌സെറ്റ് കണക്കാക്കുന്നു
                 chunk_offset = start // CHUNK_SIZE
-                
+
                 # 206 Partial Content സ്റ്റാറ്റസ് നൽകുന്നു (ഇതാണ് ലോഡിങ് കറങ്ങാൻ സഹായിക്കുന്നത്)
                 headers['Content-Range'] = f'bytes {start}-{end}/{file_size}'
                 headers['Content-Length'] = str(end - start + 1)
                 headers['Connection'] = 'keep-alive' # കറങ്ങുമ്പോൾ കണക്ഷൻ കട്ട് ആകാതിരിക്കാൻ
-                
+
                 response = web.StreamResponse(status=206, reason='Partial Content', headers=headers)
                 await response.prepare(request)
-                
+
                 current_position = chunk_offset * CHUNK_SIZE
-                
+
                 async for chunk in app.stream_media(tg_file, offset=chunk_offset):
                     if current_position + len(chunk) > start:
                         # ആദ്യ ചങ്കിലെ ആവശ്യമില്ലാത്ത ഭാഗം ഒഴിവാക്കുന്നു
                         if current_position < start:
                             chunk = chunk[start - current_position:]
-                        
+
                         # ആവശ്യപ്പെട്ട ലിമിറ്റ് കഴിഞ്ഞാൽ നിർത്തുന്നു
                         if current_position + len(chunk) > end:
                             chunk = chunk[:end - current_position + 1]
@@ -299,13 +299,13 @@ async def download_file_handler(request):
                             except:
                                 break
                             break
-                        
+
                         try:
                             await response.write(chunk)
                             await response.drain() # 🔄 ഡാറ്റ പ്ലെയറിലേക്ക് ഉടൻ പുഷ് ചെയ്യുന്നു
                         except (ConnectionResetError, BrokenPipeError):
                             break
-                    
+
                     current_position += len(chunk)
                 return response
 
@@ -316,7 +316,7 @@ async def download_file_handler(request):
 
         response = web.StreamResponse(status=200, reason='OK', headers=headers)
         await response.prepare(request)
-        
+
         async for chunk in app.stream_media(tg_file):
             try:
                 await response.write(chunk)
@@ -333,7 +333,7 @@ async def download_file_handler(request):
 
 
 
-# 🌐 മെയിൻ ലിങ്ക് പേജ്
+# 🌐 Меയിൻ ലിങ്ക് പേജ്
 async def main_page_handler(request):
     return web.Response(
         text="🚀 Nasrani Bot Stream Server is Live and Running via JustRunMy.App!",
@@ -345,10 +345,10 @@ async def start_jrma_server():
     server.router.add_get('/', main_page_handler)
     server.router.add_get('/watch/{file_id}', stream_handler)
     server.router.add_get('/download_file/{file_id}', download_file_handler)
-    
+
     runner = web.AppRunner(server)
     await runner.setup()
-    
+
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
     logging.info(f"🚀 JustRunMy.App Web Server active via HTTPS on Port {PORT}")
@@ -358,10 +358,10 @@ async def start_jrma_server():
 async def send_ping(client):
     CRON_API_KEY = "H0kpdbZCFdx7g38U9dOYdIMjXPNSA03IOzN1d4yorWY="
     YOUR_RENDER_URL = "https://nasranii.onrender.com/"
-    
+
     # ബോട്ട് ഓൺ ആയി 2 മിനിറ്റ് കഴിഞ്ഞ് ആദ്യം Cron-Job ലിങ്ക് വെരിഫൈ ചെയ്യും
     await asyncio.sleep(120) 
-    
+
     cron_api_url = "https://api.cron-job.org/jobs"
     cron_headers = {
         "Authorization": f"Bearer {CRON_API_KEY}",
@@ -375,7 +375,7 @@ async def send_ping(client):
                 if resp.status == 200:
                     jobs_data = await resp.json()
                     job_exists = any(job.get('url') == YOUR_RENDER_URL for job in jobs_data.get('jobs', []))
-                    
+
                     if not job_exists:
                         new_job = {
                             "job": {
@@ -412,7 +412,7 @@ async def send_ping(client):
             await client.send_message(chat_id=LOG_CHANNEL, text=log_message)
         except Exception as tg_err:
             logging.error(f"Telegram Ping Log Failed: {tg_err}")
-            
+
         await asyncio.sleep(180) # കൃത്യം 3 മിനിറ്റ് (180 സെക്കൻഡ്) ഇടവേള
 
 
@@ -436,9 +436,9 @@ class Bot(Client):
         await super().start()
         await Media.ensure_indexes()
         await Media2.ensure_indexes()
-        
+
         await start_jrma_server()
-        
+
         # 🔄 ഇവിടെ നമ്മൾ പുതിയ പിംഗ് ടാസ്ക് ബാക്ക്ഗ്രൗണ്ടിൽ സ്റ്റാർട്ട് ചെയ്യുന്നു
         asyncio.create_task(send_ping(self))
 
