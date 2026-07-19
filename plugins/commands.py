@@ -1,4 +1,3 @@
-from kurigram import Client, filters
 from info import *
 
 import os
