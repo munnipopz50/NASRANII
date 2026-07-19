@@ -632,6 +632,7 @@ async def give_filter(client, message):
                 try:
                     # ✅ ഇവിടെ spellcheck ലോജിക്കും ഫംഗ്ഷൻ പേരും അപ്ഡേറ്റ് ചെയ്തു
                     if settings.get('spellcheck', False) and message.text and not message.text.startswith("/"):
+                        await message.reply_text("🔎 **Searching for your movie...**")
                         return await advantage_spellcheck(client, message)
                         
                     elif settings['auto_ffilter']:
@@ -645,6 +646,7 @@ async def give_filter(client, message):
                     
                     # ✅ ഇവിടെയും അപ്ഡേറ്റ് ചെയ്തു
                     if settings.get('spellcheck', False) and message.text and not message.text.startswith("/"):
+                        await message.reply_text("🔎 **Searching for your movie...**")
                         return await advantage_spellcheck(client, message)
                     elif settings['auto_ffilter']:
                         await auto_filter(client, message)
