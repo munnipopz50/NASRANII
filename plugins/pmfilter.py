@@ -2196,7 +2196,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                             [
                                 [
                                     InlineKeyboardButton(
-                                        f"STREAM",
+                                        f"𝐖𝐚𝐭𝐜𝐡 𝐒𝐭𝐫𝐞𝐚𝐦",
                                         url = stream_link
                                     )
                                 ],                                
@@ -2233,7 +2233,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                            ],[
                               InlineKeyboardButton("⚠️ 𝐂𝐚𝐧'𝐭 𝐀𝐜𝐜𝐞𝐬𝐬 ❓ 𝐂𝐥𝐢𝐜𝐤 𝐇𝐞𝐫𝐞 ⚠️", url=(FILE_FORWARD))
                            ],[
-                              InlineKeyboardButton("📺 Watch Online / Stream 📺", url=stream_link)
+                              InlineKeyboardButton("📺 𝐖𝐚𝐭𝐜𝐡 𝐒𝐭𝐫𝐞𝐚𝐦 📺", url=stream_link)
                              ]
                             ]
                         )
@@ -2251,10 +2251,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
                         reply_markup=InlineKeyboardMarkup(
                             [
                                 [
-                                     InlineKeyboardButton(f"📩𝐒𝐚𝐯𝐞 𝐅𝐢𝐥𝐞 𝐈??📩", url=f"https://t.me/share/url?url={ident}_{file_id}")
+                                     InlineKeyboardButton(f"📺 𝐖𝐚𝐭𝐜𝐡 𝐒𝐭𝐫𝐞𝐚𝐦 📺", url=stream_link)
                                  ],
                                  [
-                                 InlineKeyboardButton(f"💻𝐒𝐞𝐧𝐝 𝐅??𝐥𝐞 𝐈𝐃💻", url=f"https://t.me/share/url?url={file_id}")
+                                 InlineKeyboardButton(f"💻𝐒𝐞𝐧𝐝 𝐅𝐢𝐥𝐞 𝐈𝐃💻", url=f"https://t.me/share/url?url={file_id}")
                                  
                                  ]                            
                             ]
@@ -2272,7 +2272,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
                         InlineKeyboardButton(f"📥 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐝 📥", url= s.link)
                     
                     ], [
-                        InlineKeyboardButton(f"⚠️𝐃𝐞??𝐞𝐭𝐞 𝐍𝐨𝐰⚠️", callback_data="dl")
+                        InlineKeyboardButton(f"⚠️𝐃𝐞𝐥𝐞𝐭𝐞 𝐍𝐨𝐰⚠️", callback_data="dl")
                 
                     ]]
                     reply_markup = InlineKeyboardMarkup(buttons)
