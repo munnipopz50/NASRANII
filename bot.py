@@ -256,7 +256,8 @@ async def download_file_handler(request):
 
                 current_position = chunk_offset * CHUNK_SIZE
 
-                async toggle_stream = bot_client.stream_media(tg_file, offset=chunk_offset)
+                # 🛠️ ഫിക്സ് ചെയ്ത വരി: ഇവിടെ 'async' ഒഴിവാക്കി വെറും അസൈൻമെന്റ് ആക്കി മാറ്റി
+                toggle_stream = bot_client.stream_media(tg_file, offset=chunk_offset)
                 async for chunk in toggle_stream:
                     if current_position + len(chunk) > start:
                         if current_position < start:
