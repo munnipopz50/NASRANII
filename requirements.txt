@@ -1,4 +1,4 @@
-pyrogram>=2.0.30
+pyrogram>=2.0.106
 TgCrypto
 pymongo[srv]==3.12.3
 motor==2.5.1
@@ -12,7 +12,7 @@ pytz
 aiohttp
 aiofiles
 wget
-Pillow>=10.0.0
+Pillow>=10.4.0
 telegraph==2.2.0
 python-decouple
 speedtest-cli
