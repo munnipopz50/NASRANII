@@ -257,7 +257,13 @@ async def choose_mediaDB():
     else:
         saveMedia = Media2
 
-
+async def self_destruct_message(message, delay):
+    """നിശ്ചിത സമയത്തിന് ശേഷം മെസേജ് ഡിലീറ്റ് ചെയ്യാൻ"""
+    await asyncio.sleep(delay)
+    try:
+        await message.delete()
+    except:
+        pass
 
 # Progress simulation function
 async def show_progress(message, search, steps=5, delay=0.5):
@@ -632,7 +638,11 @@ async def give_filter(client, message):
                 try:
                     # ✅ ഇവിടെ spellcheck ലോജിക്കും ഫംഗ്ഷൻ പേരും അപ്ഡേറ്റ് ചെയ്തു
                     if settings.get('spellcheck', False) and message.text and not message.text.startswith("/"):
-                        await message.reply_text("🔎 **Searching for your movie...**")
+                        await message.reply_text(f"🔎 **Searching for {content} movie...**")
+                        search_msg = await message.reply_text("🔎 **Searching for your movie...**")
+                        
+                        # ബാക്ക്ഗ്രൗണ്ടിൽ ഡിലീറ്റ് ചെയ്യാൻ ടാസ്ക് തുടങ്ങുന്നു (5 സെക്കൻഡിന് ശേഷം ഡിലീറ്റ് ആകാൻ)
+                        asyncio.create_task(self_destruct_message(search_msg, 5))
                         return await advantage_spellcheck(client, message)
                         
                     elif settings['auto_ffilter']:
@@ -646,7 +656,11 @@ async def give_filter(client, message):
                     
                     # ✅ ഇവിടെയും അപ്ഡേറ്റ് ചെയ്തു
                     if settings.get('spellcheck', False) and message.text and not message.text.startswith("/"):
-                        await message.reply_text("🔎 **Searching for your movie...**")
+                        await message.reply_text(f"🔎 **Searching for {content} movie...**")
+                        search_msg = await message.reply_text("🔎 **Searching for your movie...**")
+                        
+                        # ബാക്ക്ഗ്രൗണ്ടിൽ ഡിലീറ്റ് ചെയ്യാൻ ടാസ്ക് തുടങ്ങുന്നു (5 സെക്കൻഡിന് ശേഷം ഡിലീറ്റ് ആകാൻ)
+                        asyncio.create_task(self_destruct_message(search_msg, 5))
                         return await advantage_spellcheck(client, message)
                     elif settings['auto_ffilter']:
                         await auto_filter(client, message)
