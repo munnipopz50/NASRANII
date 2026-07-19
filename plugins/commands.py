@@ -76,6 +76,14 @@ async def telegraph_settings(client, message):
 
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
+    try:
+        await client.send_reaction(
+            chat_id=message.chat.id,
+            message_id=message.id,
+            emoji="❤️"  # നിങ്ങൾക്ക് ഇഷ്ടമുള്ള ഇമോജി ഇവിടെ നൽകാം
+        )
+    except Exception as e:
+        print(f"Error sending reaction: {e}")
     if message.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
         buttons = [[
             InlineKeyboardButton(f'{random.choice(RUN_STRINGS)}𝐀𝐝𝐝 𝐌𝐞 𝐓𝐨 𝐘𝐨𝐮𝐫 𝐆𝐫𝐨𝐮𝐩{random.choice(RUN_STRINGS)}', url=f'http://t.me/{temp.U_NAME}?startgroup=true')
