@@ -1250,3 +1250,10 @@ async def connect_group_pm(client, message):
 
     except Exception as e:
         await message.reply_text(f"❌ Error: {e}")   
+
+
+
+
+
+
+import plugins.stickers
