@@ -77,7 +77,12 @@ pr0fess0r_99=Client(
     api_hash = environ["API_HASH"]
 )
 
-AUTH_CHANNEL = [int(pr0fess0r_99) for pr0fess0r_99 in environ.get("AUTH_CHANNEL", None).split()]
+# AUTH_CHANNEL സെറ്റ് ചെയ്തിട്ടില്ലെങ്കിൽ അത് ഒരു എംറ്റി ലിസ്റ്റ് ആയി കണക്കാക്കും
+raw_auth = environ.get("AUTH_CHANNEL")
+AUTH_CHANNEL = [int(x) for x in raw_auth.split()] if raw_auth else []
+
+
+# AUTH_CHANNEL = [int(pr0fess0r_99) for pr0fess0r_99 in environ.get("AUTH_CHANNEL", None).split()]
 TEXT = environ.get("APPROVED_WELCOME_TEXT", "ʜᴇʟʟᴏ {mention} ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟ. {title}\n\nᴏɴʟʏ ɴᴇᴡ ᴀɴᴅ ʟᴏᴡ ꜱɪᴢᴇ ᴍᴏᴠɪᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. ᴇɴᴊᴏʏɪɴɢ🔥🔥")
 APPROVED = environ.get("APPROVED_WELCOME", "on").lower()
 
