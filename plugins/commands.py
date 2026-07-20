@@ -108,35 +108,6 @@ async def autoapprove(client: pr0fess0r_99, message: ChatJoinRequest):
         parse_mode=enums.ParseMode.HTML
         )
         print("Welcome....")
- 
-        users = await db.get_all_users()
-        b_msg = TEXT
-        
-        start_time = time.time()
-        total_users = await db.total_users_count()
-        done = 0
-        blocked = 0
-        deleted = 0
-        failed =0
-
-        success = 0
-        async for user in users:
-            pti, sh = await broadcast_messages(int(user['id']), b_msg)
-            if pti:
-                success += 1
-            elif pti == False:
-                if sh == "Blocked":
-                    blocked+=1
-                elif sh == "Deleted":
-                    deleted += 1
-                elif sh == "Error":
-                    failed += 1
-            done += 1
-            await asyncio.sleep(2)
-            if not done % 20:
-                
-                print("Welcome....")
-
 
 print("Auto Approved Bot")
 
