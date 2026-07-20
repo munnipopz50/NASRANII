@@ -69,14 +69,33 @@ from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, User, ChatJoinRequest
 
 
-TEXT = "ʜᴇʟʟᴏ {mention} ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟ. {title}\n\nᴏɴʟʏ ɴᴇᴡ ᴀɴᴅ ʟᴏᴡ ꜱɪᴢᴇ ᴍᴏᴠɪᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. ᴇɴᴊᴏʏɪɴɢ🔥🔥"
+from os import environ
+from pyrogram import Client, filters, enums
+from pyrogram.types import (
+    ChatJoinRequest,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton
+)
 
-APPROVED = "on"
+TEXT = environ.get(
+    "APPROVED_WELCOME_TEXT",
+    "ʜᴇʟʟᴏ {mention} ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟ. {title}\n\n"
+    "ᴏɴʟʏ ɴᴇᴡ ᴀɴᴅ ʟᴏᴡ ꜱɪᴢᴇ ᴍᴏᴠɪᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. ᴇɴᴊᴏʏɪɴɢ🔥🔥"
+)
 
-@Client.on_chat_join_request(filters.chat(AUTH_CHANNEL))
-async def auto_approve(client, join_request):
+APPROVED = environ.get("APPROVED_WELCOME", "on").lower()
+
+@Client.on_chat_join_request(
+    filters.chat(AUTH_CHANNEL) if AUTH_CHANNEL else (filters.group | filters.channel)
+)
+async def autoapprove(client: Client, message: ChatJoinRequest):
+    chat = message.chat
+    user = message.from_user
+
+    print(f"{user.first_name} Joined 🤝")
+
     try:
-        await join_request.approve()
+        await message.approve()
 
         if APPROVED == "on":
             buttons = [[
@@ -87,17 +106,19 @@ async def auto_approve(client, join_request):
             ]]
 
             await client.send_message(
-                chat_id=join_request.chat.id,
+                chat_id=chat.id,
                 text=TEXT.format(
-                    mention=join_request.from_user.mention,
-                    title=join_request.chat.title
+                    mention=user.mention,
+                    title=chat.title
                 ),
                 reply_markup=InlineKeyboardMarkup(buttons),
-                parse_mode=enums.ParseMode.HTML
+                parse_mode=ParseMode.HTML
             )
 
+            print("Welcome message sent.")
+
     except Exception as e:
-        print(e)
+        print(f"Auto approve error: {e}")
 
 
 
