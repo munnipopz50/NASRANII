@@ -3649,10 +3649,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
 
         # 🚀 യൂസർക്ക് പോസ്റ്ററും ബട്ടണുകളും അയക്കുന്നു
-            Joel_tgx = await query.message.reply_photo(
-                    photo=imdb.get('poster'),
-                    caption=script.FILE_MSG.format(query.from_user.mention, title, size),
-                    parse_mode=enums.ParseMode.HTML,
+        Joel_tgx = await query.message.reply_photo(
+            photo=imdb.get('poster'),
+            caption=script.FILE_MSG.format(query.from_user.mention, title, size),
+            parse_mode=enums.ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(
                 [
                     [
