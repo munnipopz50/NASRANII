@@ -112,7 +112,7 @@ async def autoapprove(client: Client, message: ChatJoinRequest):
                     title=chat.title
                 ),
                 reply_markup=InlineKeyboardMarkup(buttons),
-                parse_mode=ParseMode.HTML
+                parse_mode=enums.ParseMode.HTML
             )
 
             print("Welcome message sent.")
