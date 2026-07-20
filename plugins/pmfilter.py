@@ -2299,6 +2299,60 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
     # 🛑 ഇവിടെയാണ് നിങ്ങളുടെ പുതിയ SENDMARKED ബട്ടൺ വരേണ്ടത് (കറക്റ്റ് ഇൻഡന്റേഷനിൽ)
 
+    elif query.data.startswith("modch#"):
+        _, ident, file_id = query.data.split("#", 2)
+
+        files_ = await get_file_details(file_id)
+
+        if not files_:
+            return await query.answer(
+                "File not found",
+                show_alert=True
+            )
+
+        files = files_[0]
+        title = files.file_name
+        size = get_size(files.file_size)
+        
+        # 🟢 ചാനലിലേക്ക് ഫയൽ സെൻഡ് ചെയ്യുന്നു
+        file_send = await client.send_cached_media(
+            chat_id=FILE_CHANNEL,
+            file_id=file_id,
+            caption=script.CHANNEL_CAP.format(
+                query.from_user.mention,
+                title,
+                query.message.chat.title or "Private Chat"
+            ),
+            protect_content=True if ident == "filep" else False
+        )
+
+        JRMA_URL = SHORTLINK_URL
+        stream_link = f"{JRMA_URL}/watch/{file_id}"
+
+        # 🚀 യൂസർക്ക് അയക്കുന്ന മെസ്സേജ്
+        try:
+            await client.send_message(
+                chat_id=query.message.chat.id,                        
+                text=script.CHANNEL_CAP.format(
+                    query.from_user.mention, 
+                    title, 
+                    query.message.chat.title or "Private Chat"
+                ),
+                parse_mode=enums.ParseMode.HTML,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📺 Watch Online / Stream 📺", url=stream_link)],
+                    [InlineKeyboardButton("📥 Fast Download Link 📥", url=file_send.link)],
+                    [InlineKeyboardButton("⚠️ 𝐂𝐚𝐧't 𝐀𝐜𝐜𝐞𝐬𝐬 ❓ 𝐂𝐥𝐢𝐜𝐤 𝐇𝐞𝐫𝐞 ⚠️", url=FILE_FORWARD)]
+                ])
+            )
+        except Exception as e:
+            print(f"Error sending message: {e}") 
+            await query.answer("Something went wrong!", show_alert=True)
+
+        return await query.answer()
+        
+        
+        
 
     elif query.data.startswith("sendfiles"):
         clicked = query.from_user.id
@@ -3575,57 +3629,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
         ) 
 
 
-    elif query.data.startswith("modch#"):
-        _, ident, file_id = query.data.split("#", 2)
-
-        files_ = await get_file_details(file_id)
-
-        if not files_:
-            return await query.answer(
-                "File not found",
-                show_alert=True
-            )
-
-        files = files_[0]
-        title = files.file_name
-        size = get_size(files.file_size)
-        
-        # 🟢 ചാനലിലേക്ക് ഫയൽ സെൻഡ് ചെയ്യുന്നു
-        file_send = await client.send_cached_media(
-            chat_id=FILE_CHANNEL,
-            file_id=file_id,
-            caption=script.CHANNEL_CAP.format(
-                query.from_user.mention,
-                title,
-                query.message.chat.title or "Private Chat"
-            ),
-            protect_content=True if ident == "filep" else False
-        )
-
-        JRMA_URL = SHORTLINK_URL
-        stream_link = f"{JRMA_URL}/watch/{file_id}"
-
-        # 🚀 യൂസർക്ക് അയക്കുന്ന മെസ്സേജ്
-        try:
-            await client.send_message(
-                chat_id=query.message.chat.id,                        
-                text=script.CHANNEL_CAP.format(
-                    query.from_user.mention, 
-                    title, 
-                    query.message.chat.title or "Private Chat"
-                ),
-                parse_mode=enums.ParseMode.HTML,
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📺 Watch Online / Stream 📺", url=stream_link)],
-                    [InlineKeyboardButton("📥 Fast Download Link 📥", url=file_send.link)],
-                    [InlineKeyboardButton("⚠️ 𝐂𝐚𝐧't 𝐀𝐜𝐜𝐞𝐬𝐬 ❓ 𝐂𝐥𝐢𝐜𝐤 𝐇𝐞𝐫𝐞 ⚠️", url=FILE_FORWARD)]
-                ])
-            )
-        except Exception as e:
-            print(f"Error sending message: {e}") 
-            await query.answer("Something went wrong!", show_alert=True)
-
-        return await query.answer()
 
 
         
