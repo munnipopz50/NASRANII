@@ -2333,9 +2333,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
         try:
             await client.send_message(
                 chat_id=query.message.chat.id,                        
-                text=script.CHANNEL_CAP.format(
-                    query.from_user.mention, 
-                    title, 
+                text=script.FILE_MSG.format(
+                    query.from_user.mention,
+                    title,
+                    size,
                     query.message.chat.title or "Private Chat"
                 ),
                 parse_mode=enums.ParseMode.HTML,
