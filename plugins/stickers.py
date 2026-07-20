@@ -2,7 +2,7 @@ from pyrogram import Client, filters
 
 print("STICKER PLUGIN LOADED")
 
-@Client.on_message(filters.command("sticker") & filters.incoming)
+@Client.on_message(filters.command("s")
 async def sticker(client, message):
     print("STICKER COMMAND RECEIVED")
     await message.reply_text("✅ Sticker command working")
