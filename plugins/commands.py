@@ -40,29 +40,35 @@ RUN_STRINGS = (
 
 
 BATCH_FILES = {}
-AUTH_CHANNEL = [int(pr0fess0r_99) for pr0fess0r_99 in environ.get("AUTH_CHANNEL", None).split()]
+# AUTH_CHANNEL = [int(pr0fess0r_99) for pr0fess0r_99 in environ.get("AUTH_CHANNEL", None).split()]
 TEXT = environ.get("APPROVED_WELCOME_TEXT", "ʜᴇʟʟᴏ {mention} ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟ. {title}\n\nᴏɴʟʏ ɴᴇᴡ ᴀɴᴅ ʟᴏᴡ ꜱɪᴢᴇ ᴍᴏᴠɪᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. ᴇɴᴊᴏʏɪɴɢ🔥🔥")
 APPROVED = environ.get("APPROVED_WELCOME", "on").lower()
 
 
 @Client.on_chat_join_request((filters.group | filters.channel) & filters.chat(AUTH_CHANNEL) if AUTH_CHANNEL else (filters.group | filters.channel))
-async def autoapprove(client: pr0fess0r_99, message: ChatJoinRequest):
+async def autoapprove(client: Client, message: ChatJoinRequest): # ഇവിടെ pr0fess0r_99 എന്നതിന് പകരം Client എന്ന് നൽകുന്നതാണ് നല്ലത്
+    chat = message.chat
+    user = message.from_user
     
-    chat=message.chat # Chat
-    user=message.from_user # User
-    print(f"{user.first_name} Joined 🤝") # Logs
-    await client.approve_chat_join_request(chat_id=chat.id, user_id=user.id)
-    if APPROVED == "on":
+    try:
+        # അപ്രൂവ് ചെയ്യുന്നു
+        await client.approve_chat_join_request(chat_id=chat.id, user_id=user.id)
+        print(f"{user.first_name} Joined 🤝") 
         
-        buttons = [[
-            InlineKeyboardButton('🧩𝐉𝐎𝐈𝐍 𝐆𝐑𝐎𝐔𝐏🧩', url=f'https://t.me/nasrani_update')
+        if APPROVED == "on":
+            buttons = [[InlineKeyboardButton('🧩𝐉𝐎𝐈𝐍 𝐆𝐑𝐎𝐔𝐏🧩', url=f'https://t.me/nasrani_update')]]
+            reply_markup = InlineKeyboardMarkup(buttons)
             
-        ]]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        k = await client.send_message(chat_id=chat.id, text=TEXT.format(mention=user.mention, title=chat.title),
-        reply_markup=reply_markup,
-        parse_mode=enums.ParseMode.HTML
-        )
+            # മെസ്സേജ് അയക്കുമ്പോൾ എറർ വരാതിരിക്കാൻ try-except ഉപയോഗിക്കുക
+            await client.send_message(
+                chat_id=chat.id, 
+                text=TEXT.format(mention=user.mention, title=chat.title),
+                reply_markup=reply_markup,
+                parse_mode=enums.ParseMode.HTML
+            )
+    except Exception as e:
+        print(f"Error in autoapprove: {e}")
+
 
 @Client.on_message(filters.command("telegraph") & filters.group)
 async def telegraph_settings(client, message):
