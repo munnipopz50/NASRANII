@@ -41,6 +41,15 @@ RUN_STRINGS = (
 
 BATCH_FILES = {}
 
+from pyrogram import Client, filters
+
+
+print("✅ STICKERS PLUGIN LOADED")
+@Client.on_message(filters.command("st"))
+async def stickerssq(client, message):
+    print("STICKER COMMAND RECEIVED")
+    await message.reply_text("✅ Sticker command working")
+
 
 @Client.on_message(filters.command("telegraph") & filters.group)
 async def telegraph_settings(client, message):
