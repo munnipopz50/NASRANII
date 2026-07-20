@@ -40,16 +40,29 @@ RUN_STRINGS = (
 
 
 BATCH_FILES = {}
+AUTH_CHANNEL = [int(pr0fess0r_99) for pr0fess0r_99 in environ.get("AUTH_CHANNEL", None).split()]
+TEXT = environ.get("APPROVED_WELCOME_TEXT", "ʜᴇʟʟᴏ {mention} ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟ. {title}\n\nᴏɴʟʏ ɴᴇᴡ ᴀɴᴅ ʟᴏᴡ ꜱɪᴢᴇ ᴍᴏᴠɪᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. ᴇɴᴊᴏʏɪɴɢ🔥🔥")
+APPROVED = environ.get("APPROVED_WELCOME", "on").lower()
 
-from pyrogram import Client, filters
 
-
-print("✅ STICKERS PLUGIN LOADED")
-@Client.on_message(filters.command("st"))
-async def stickerssq(client, message):
-    print("STICKER COMMAND RECEIVED")
-    await message.reply_text("✅ Sticker command working")
-
+@Client.on_chat_join_request((filters.group | filters.channel) & filters.chat(AUTH_CHANNEL) if AUTH_CHANNEL else (filters.group | filters.channel))
+async def autoapprove(client: pr0fess0r_99, message: ChatJoinRequest):
+    
+    chat=message.chat # Chat
+    user=message.from_user # User
+    print(f"{user.first_name} Joined 🤝") # Logs
+    await client.approve_chat_join_request(chat_id=chat.id, user_id=user.id)
+    if APPROVED == "on":
+        
+        buttons = [[
+            InlineKeyboardButton('🧩𝐉𝐎𝐈𝐍 𝐆𝐑𝐎𝐔𝐏🧩', url=f'https://t.me/nasrani_update')
+            
+        ]]
+        reply_markup = InlineKeyboardMarkup(buttons)
+        k = await client.send_message(chat_id=chat.id, text=TEXT.format(mention=user.mention, title=chat.title),
+        reply_markup=reply_markup,
+        parse_mode=enums.ParseMode.HTML
+        )
 
 @Client.on_message(filters.command("telegraph") & filters.group)
 async def telegraph_settings(client, message):
