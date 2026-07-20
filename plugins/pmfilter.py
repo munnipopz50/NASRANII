@@ -3593,20 +3593,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
         size = get_size(files.file_size)
         content = query.message.reply_to_message.text
 
-#        content = ""
-
-#        if query.message.reply_to_message:
-#            content = query.message.reply_to_message.text or ""
-#        content = query.message.reply_to_message.text
-
-        print("STEP 2")
-
-#        imdb = await get_poster(content) if IMDB else None
-
-
-#        imdb = await get_poster(content) if IMDB and content else None
-#        poster = imdb.get("poster") if imdb else random.choice(PICS)
-
         # 🟢 ചാനലിലേക്ക് ഫയൽ സെൻഡ് ചെയ്യുന്നു
         file_send = await client.send_cached_media(
             chat_id=FILE_CHANNEL,
@@ -3625,14 +3611,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
         poster_encoded = urllib.parse.quote(poster)
         JRMA_URL = SHORTLINK_URL
         stream_link = f"{JRMA_URL}/watch/{file_id}"
-        content = query.message.reply_to_message.text
-
-        print("STEP 2")
-#                    import urllib.parse
-        imdb = await get_poster(content) if IMDB else None
-                    
-
-
         # 📝 [CUSTOM CAPTION - WITH SPACES]
         # യൂസർ നെയിം കഴിഞ്ഞൊരു സ്പേസും താഴെ ഫയൽ വിവരങ്ങളും നൽകുന്നു
         custom_caption = (
@@ -3642,37 +3620,19 @@ async def cb_handler(client: Client, query: CallbackQuery):
             f"✨ <i>Enjoy your movie!</i>"
         )
 
-        # 🚀 യൂസർക്ക് പോസ്റ്ററും ബട്ടണുകളും അയക്കുന്നു
-        s = await client.send_message(
-            chat_id=query.message.chat.id,                        
-            text=script.DONE_MSG.format(query.from_user.mention, title, size),
-            parse_mode=enums.ParseMode.HTML,
-            reply_markup=InlineKeyboardMarkup(
-                [
-                    [
-                        # 1. സ്ട്രീം ബട്ടൺ (ആദ്യം കാണാൻ)
-                        InlineKeyboardButton(
-                            "📺 Watch Online / Stream 📺",
-                            url=stream_link
-                        )
-                    ],
-                    [
-                        # 2. ഡൗൺലോഡ് ബട്ടൺ (തൊട്ടുതാഴെ)
-                        InlineKeyboardButton(
-                            "📥 Fast Download Link 📥",
-                            url=file_send.link
-                        )
-                    ],
-                    [
-                        # 3. ഹെൽപ്പ് ബട്ടൺ
-                        InlineKeyboardButton(
-                            "⚠️ 𝐂𝐚𝐧't 𝐀𝐜𝐜𝐞𝐬𝐬 ❓ 𝐂𝐥𝐢𝐜𝐤 𝐇𝐞𝐫𝐞 ⚠️",
-                            url=FILE_FORWARD
-                        )
-                    ]
-                ]
+       try:
+            s = await client.send_message(
+                chat_id=query.message.chat.id,                        
+                text=caption=script.CHANNEL_CAP.format(query.from_user.mention, title, query.message.chat.title),
+                parse_mode=enums.ParseMode.HTML,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📺 Watch Online / Stream 📺", url=stream_link)],
+                    [InlineKeyboardButton("📥 Fast Download Link 📥", url=file_send.link)],
+                    [InlineKeyboardButton("⚠️ 𝐂𝐚𝐧't 𝐀𝐜𝐜𝐞𝐬𝐬 ❓ 𝐂𝐥𝐢𝐜𝐤 𝐇𝐞𝐫𝐞 ⚠️", url=FILE_FORWARD)]
+                ])
             )
-        )
+        except Exception as e:
+            print(f"Error sending message: {e}") # എറർ എന്താണെന്ന് അറിയാൻ സഹായിക്കും
 
         return await query.answer()
         
