@@ -3591,11 +3591,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         title = files.file_name
         size = get_size(files.file_size)
+        content = query.message.reply_to_message.text
 
-        content = ""
+#        content = ""
 
         if query.message.reply_to_message:
-            content = query.message.reply_to_message.text or ""
+#            content = query.message.reply_to_message.text or ""
 #        content = query.message.reply_to_message.text
 
         print("STEP 2")
