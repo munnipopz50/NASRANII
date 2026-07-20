@@ -2303,12 +2303,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         _, ident, file_id = query.data.split("#", 2)
 
         files_ = await get_file_details(file_id)
-
         if not files_:
-            return await query.answer(
-                "File not found",
-                show_alert=True
-            )
+            return await query.answer("File not found", show_alert=True)
 
         files = files_[0]
         title = files.file_name
@@ -2319,38 +2315,65 @@ async def cb_handler(client: Client, query: CallbackQuery):
             chat_id=FILE_CHANNEL,
             file_id=file_id,
             caption=script.CHANNEL_CAP.format(
-                query.from_user.mention,
-                title,
-                query.message.chat.title or "Private Chat"
+                query.from_user.mention, title, query.message.chat.title or "Private Chat"
             ),
             protect_content=True if ident == "filep" else False
         )
         
-#        content = query.message.reply_to_message.text
+        # 📺 title വെച്ച് പോസ്റ്റർ സെർച്ച് ചെയ്യുന്നു (ഒറിജിനൽ മാത്രം)
         imdb = await get_poster(title) if IMDB else None
-                                        
+
         JRMA_URL = SHORTLINK_URL
         stream_link = f"{JRMA_URL}/watch/{file_id}"
 
-        # 🚀 യൂസർക്ക് അയക്കുന്ന മെസ്സേജ്
+        # 🚀 പോസ്റ്റർ ഉണ്ടെങ്കിൽ മാത്രം പ്രവർത്തിക്കുന്നു
         try:
-#            await client.send_message(
-            await query.message.reply_photo(
-                photo=imdb.get('poster'),
-#                chat_id=query.message.chat.id,                        
-                caption=script.FILE_MSG.format(query.from_user.mention, title, size, query.message.chat.title or "Private Chat"),
-                parse_mode=enums.ParseMode.HTML,
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📺 Watch Online / Stream 📺", url=stream_link)],
-                    [InlineKeyboardButton("📥 Fast Download Link 📥", url=file_send.link)],
-                    [InlineKeyboardButton("⚠️ 𝐂𝐚𝐧't 𝐀𝐜𝐜𝐞𝐬𝐬 ❓ 𝐂𝐥𝐢𝐜𝐤 𝐇𝐞𝐫𝐞 ⚠️", url=FILE_FORWARD)]
-                ])
-            )
+            if imdb and imdb.get('poster'):
+                Joel_tgx = await query.message.reply_photo(
+                    photo=imdb.get('poster'),
+                    caption=script.FILE_MSG.format(query.from_user.mention, title, size),
+                    parse_mode=enums.ParseMode.HTML,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton('📥 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝 𝐋𝐢𝐧𝐤 📥 ', url=file_send.link)],
+                        [InlineKeyboardButton("⚠️ 𝐂𝐚𝐧'𝐭 𝐀𝐜𝐜𝐞𝐬𝐬 ❓ 𝐂𝐥𝐢𝐜𝐤 𝐇𝐞𝐫𝐞 ⚠️", url=FILE_FORWARD)],
+                        [InlineKeyboardButton("📺 𝐖𝐚𝐭𝐜𝐡 𝐒𝐭𝐫𝐞𝐚𝐦 📺", url=stream_link)]
+                    ])
+                )
+                
+                # സ്റ്റിക്കർ ലോജിക്
+                name_format = f"okda"
+                image = await Joel_tgx.download(file_name=f"{name_format}.jpg")
+                im = Image.open(image).convert("RGB")
+                im.save(f"{name_format}.webp", "webp")
+                
+                s = await client.send_message(
+                    chat_id=FILE_CHANNEL,                        
+                    text=script.DONE_MSG.format(query.from_user.mention, title, size),
+                    parse_mode=enums.ParseMode.HTML,
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(f"📺 𝐖𝐚𝐭𝐜𝐡 𝐒𝐭𝐫𝐞𝐚𝐦 📺", url=stream_link)],
+                        [InlineKeyboardButton(f"💻𝐒𝐞𝐧𝐝 𝐅𝐢𝐥𝐞 𝐈𝐃💻", url=f"https://t.me/share/url?url={file_id}")]
+                    ])
+                )
+                
+                await client.send_sticker(
+                    chat_id=AUTH_CHANNEL,
+                    sticker=f"{name_format}.webp",            
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(f"📥 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐝 📥", url=s.link)], 
+                        [InlineKeyboardButton(f"⚠️𝐃𝐞𝐥𝐞𝐭𝐞 𝐍𝐨𝐰⚠️", callback_data="dl")]
+                    ])
+                )
+            else:
+                # പോസ്റ്റർ ഇല്ലെങ്കിൽ യൂസർക്ക് ഒരു അറിയിപ്പ് മാത്രം നൽകുന്നു
+                await query.answer("Poster not found, cannot proceed.", show_alert=True)
+            
         except Exception as e:
-            print(f"Error sending message: {e}") 
+            print(f"Error in modch: {e}") 
             await query.answer("Something went wrong!", show_alert=True)
 
         return await query.answer()
+
         
         
         
