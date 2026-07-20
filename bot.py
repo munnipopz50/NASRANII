@@ -38,7 +38,7 @@ from info import *
 import aiohttp
 from plugins.index import resume_index_jobs
 from plugins.index import index_files_to_db, resume_col
-import plugins.sticker
+import plugins.stickers
 print("MANUAL IMPORT SUCCESS")
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
