@@ -1,1 +1,1 @@
-from . import sticker
+# from . import sticker
