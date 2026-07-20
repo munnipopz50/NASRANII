@@ -3601,8 +3601,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
         print("STEP 2")
 
 #        imdb = await get_poster(content) if IMDB else None
-        imdb = await get_poster(content) if IMDB and content else None
-        poster = imdb.get("poster") if imdb else random.choice(PICS)
+
+
+#        imdb = await get_poster(content) if IMDB and content else None
+#        poster = imdb.get("poster") if imdb else random.choice(PICS)
 
         try:
             vote_data = await get_file_votes(file_id)
@@ -3629,6 +3631,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
         poster_encoded = urllib.parse.quote(poster)
         JRMA_URL = SHORTLINK_URL
         stream_link = f"{JRMA_URL}/watch/{file_id}"
+        content = query.message.reply_to_message.text
+
+        print("STEP 2")
+#                    import urllib.parse
+        imdb = await get_poster(content) if IMDB else None
+                    
+
 
         # 📝 [CUSTOM CAPTION - WITH SPACES]
         # യൂസർ നെയിം കഴിഞ്ഞൊരു സ്പേസും താഴെ ഫയൽ വിവരങ്ങളും നൽകുന്നു
@@ -3640,10 +3649,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
 
         # 🚀 യൂസർക്ക് പോസ്റ്ററും ബട്ടണുകളും അയക്കുന്നു
-        await query.message.reply_text(
-#            photo=poster,
-            text=custom_caption, # 💡 നമ്മൾ മുകളിൽ സെറ്റ് ചെയ്ത പുതിയ ക്യാപ്ഷൻ
-            parse_mode=enums.ParseMode.HTML,
+            Joel_tgx = await query.message.reply_photo(
+                    photo=imdb.get('poster'),
+                    caption=script.FILE_MSG.format(query.from_user.mention, title, size),
+                    parse_mode=enums.ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(
                 [
                     [
