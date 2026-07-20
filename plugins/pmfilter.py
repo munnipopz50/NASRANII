@@ -3643,9 +3643,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
 
         # 🚀 യൂസർക്ക് പോസ്റ്ററും ബട്ടണുകളും അയക്കുന്നു
-        Joel_tgx = await query.message.reply_text(
- #           photo=imdb.get('poster'),
-            text=script.FILE_MSG.format(query.from_user.mention, title, size),
+        s = await client.send_message(
+            chat_id=query.message.chat.id,                        
+            text=script.DONE_MSG.format(query.from_user.mention, title, size),
             parse_mode=enums.ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(
                 [
@@ -3675,8 +3675,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
 
         return await query.answer()
-
-
+        
+        
     elif query.data == "sendmarked":
         user_id = query.from_user.id
         files = MARKED_FILES.get(user_id, [])
