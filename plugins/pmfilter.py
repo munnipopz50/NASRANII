@@ -2379,37 +2379,36 @@ async def cb_handler(client: Client, query: CallbackQuery):
             protect_content=True if ident == "filep" else False
         )
         
-        # 📺 title വെച്ച് പോസ്റ്റർ സെർച്ച് ചെയ്യുന്നു (ഒറിജിനൽ മാത്രം)
-        # ഉപയോഗിക്കേണ്ട രീതി:
+        # ക്ലീൻ ചെയ്ത ടൈറ്റിൽ വെച്ച് പോസ്റ്റർ സെർച്ച് ചെയ്യുന്നു
         clean_title = clean_movie_name(title)
-        print(f"CLEANED: {clean_title}")
         imdb = await get_poster(clean_title) if IMDB else None
-
 
         JRMA_URL = SHORTLINK_URL
         stream_link = f"{JRMA_URL}/watch/{file_id}"
+        
+        buttons = InlineKeyboardMarkup([
+            [InlineKeyboardButton('📥 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝 𝐋𝐢𝐧𝐤 📥 ', url=file_send.link)],
+            [InlineKeyboardButton("⚠️ 𝐂𝐚𝐧'𝐭 𝐀𝐜𝐜𝐞𝐬𝐬 ❓ 𝐂𝐥𝐢𝐜𝐤 𝐇𝐞𝐫𝐞 ⚠️", url=FILE_FORWARD)],
+            [InlineKeyboardButton("📺 𝐖𝐚𝐭𝐜𝐡 𝐒𝐭𝐫𝐞𝐚𝐦 📺", url=stream_link)]
+        ])
 
-        # 🚀 പോസ്റ്റർ ഉണ്ടെങ്കിൽ മാത്രം പ്രവർത്തിക്കുന്നു
+        # 🚀 പോസ്റ്റർ ഉണ്ടെങ്കിൽ ഫോട്ടോയും ഇല്ലെങ്കിൽ ടെക്സ്റ്റും അയക്കുന്നു
         try:
             if imdb and imdb.get('poster'):
                 Joel_tgx = await query.message.reply_photo(
                     photo=imdb.get('poster'),
                     caption=script.FILE_MSG.format(query.from_user.mention, title, size),
                     parse_mode=enums.ParseMode.HTML,
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton('📥 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝 𝐋𝐢𝐧𝐤 📥 ', url=file_send.link)],
-                        [InlineKeyboardButton("⚠️ 𝐂𝐚𝐧'𝐭 𝐀𝐜𝐜𝐞𝐬𝐬 ❓ 𝐂𝐥𝐢𝐜𝐤 𝐇𝐞𝐫𝐞 ⚠️", url=FILE_FORWARD)],
-                        [InlineKeyboardButton("📺 𝐖𝐚𝐭𝐜𝐡 𝐒𝐭𝐫𝐞𝐚𝐦 📺", url=stream_link)]
-                    ])
+                    reply_markup=buttons
                 )
                 
-                # സ്റ്റിക്കർ ലോജിക്
+                # സ്റ്റിക്കർ ലോജിക് (പോസ്റ്റർ ഉള്ളപ്പോൾ മാത്രം)
                 name_format = f"okda"
                 image = await Joel_tgx.download(file_name=f"{name_format}.jpg")
                 im = Image.open(image).convert("RGB")
                 im.save(f"{name_format}.webp", "webp")
                 
-                s = await client.send_message(
+                await client.send_message(
                     chat_id=FILE_CHANNEL,                        
                     text=script.DONE_MSG.format(query.from_user.mention, title, size),
                     parse_mode=enums.ParseMode.HTML,
@@ -2418,24 +2417,19 @@ async def cb_handler(client: Client, query: CallbackQuery):
                         [InlineKeyboardButton(f"💻𝐒𝐞𝐧𝐝 𝐅𝐢𝐥𝐞 𝐈𝐃💻", url=f"https://t.me/share/url?url={file_id}")]
                     ])
                 )
-                
-                await client.send_sticker(
-                    chat_id=AUTH_CHANNEL,
-                    sticker=f"{name_format}.webp",            
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton(f"📥 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐝 📥", url=s.link)], 
-                        [InlineKeyboardButton(f"⚠️𝐃𝐞𝐥𝐞𝐭𝐞 𝐍𝐨𝐰⚠️", callback_data="dl")]
-                    ])
-                )
             else:
-                # പോസ്റ്റർ ഇല്ലെങ്കിൽ യൂസർക്ക് ഒരു അറിയിപ്പ് മാത്രം നൽകുന്നു
-                await query.answer("Poster not found, cannot proceed.", show_alert=True)
-            
+                # പോസ്റ്റർ ഇല്ലെങ്കിൽ ടെക്സ്റ്റ് മെസ്സേജ് മാത്രം അയക്കുന്നു
+                await query.message.reply_text(
+                    text=script.FILE_MSG.format(query.from_user.mention, title, size),
+                    parse_mode=enums.ParseMode.HTML,
+                    reply_markup=buttons
+                )
         except Exception as e:
             print(f"Error in modch: {e}") 
             await query.answer("Something went wrong!", show_alert=True)
 
         return await query.answer()
+
 
         
         
