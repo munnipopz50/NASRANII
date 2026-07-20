@@ -267,8 +267,36 @@ async def self_destruct_message(message, delay):
 
 
 
-
 def clean_movie_name(title):
+    # 1. അനാവശ്യമായ എല്ലാം നീക്കം ചെയ്യുന്നു (ചാനൽ പേര്, [KML], @...)
+    title = re.sub(r'(@\w+|\[.*?\]|\{.*?\})', '', title)
+    
+    # 2. PART എന്ന് വരുന്നവ നീക്കം ചെയ്യുന്നു
+    title = re.sub(r'(?i)PART \d+', '', title)
+    
+    # 3. സീസൺ/എപ്പിസോഡ് നീക്കം ചെയ്യുന്നു (Kurulus Osman S01E15 -> Kurulus Osman)
+    title = re.sub(r'(?i)S\d{2}E\d{2}', '', title)
+    
+    # 4. വർഷം കണ്ടെത്താൻ [1999] അല്ലെങ്കിൽ (1999) അല്ലെങ്കിൽ വെറും 1999 നോക്കുന്നു
+    year_match = re.search(r'[\(\[\s](\d{4})[\)\]\s]?', title)
+    
+    if year_match:
+        # വർഷം കിട്ടിയാൽ ആ പേരും വർഷവും മാത്രം എടുക്കുന്നു
+        movie_name = title.split(year_match.group(0))[0]
+        return f"{movie_name.strip()} {year_match.group(1)}"
+    
+    # 5. വർഷം ഇല്ലെങ്കിൽ, ക്വാളിറ്റി/ഫോർമാറ്റ് ടാഗുകൾ തുടങ്ങുന്നതിന് മുൻപുള്ളത് എടുക്കുന്നു
+    # (?i) അക്ഷരങ്ങൾ കേസ് സെൻസിറ്റീവ് അല്ലാതാക്കാൻ
+    # മിക്കവാറും ഫയലുകൾ മുകളിൽ പറഞ്ഞ രീതിയിലാകും അവസാനിക്കുക
+    clean_title = re.split(r'(?i)(\.mkv|\.mp4|720p|1080p|480p|DVDRip|Bluray|WEB-DL|x264|x265)', title)[0]
+    
+    # അവസാനം ചെറിയ ക്ലീനിംഗ്
+    return clean_title.replace('_', ' ').strip()
+
+
+
+
+def clean_movie_namee(title):
     # 1. @ ഉപയോഗിച്ച് തുടങ്ങുന്ന ചാനൽ പേരുകൾ, [KML] പോലുള്ള ടാഗുകൾ ഒഴിവാക്കുന്നു
     title = re.sub(r'(@\w+|\[.*?\])', '', title)
     
