@@ -2325,20 +2325,20 @@ async def cb_handler(client: Client, query: CallbackQuery):
             ),
             protect_content=True if ident == "filep" else False
         )
-
+        
+        content = query.message.reply_to_message.text
+        imdb = await get_poster(content) if IMDB else None
+                    
         JRMA_URL = SHORTLINK_URL
         stream_link = f"{JRMA_URL}/watch/{file_id}"
 
         # 🚀 യൂസർക്ക് അയക്കുന്ന മെസ്സേജ്
         try:
-            await client.send_message(
-                chat_id=query.message.chat.id,                        
-                text=script.FILE_MSG.format(
-                    query.from_user.mention,
-                    title,
-                    size,
-                    query.message.chat.title or "Private Chat"
-                ),
+#            await client.send_message(
+            await query.message.reply_photo(
+                photo=imdb.get('poster'),
+#                chat_id=query.message.chat.id,                        
+                caption=script.FILE_MSG.format(query.from_user.mention, title, size, query.message.chat.title or "Private Chat"),
                 parse_mode=enums.ParseMode.HTML,
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("📺 Watch Online / Stream 📺", url=stream_link)],
