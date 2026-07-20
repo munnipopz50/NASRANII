@@ -2326,9 +2326,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
             protect_content=True if ident == "filep" else False
         )
         
-        content = query.message.reply_to_message.text
-        imdb = await get_poster(content) if IMDB else None
-                    
+#        content = query.message.reply_to_message.text
+        imdb = await get_poster(title) if IMDB else None
+                                        
         JRMA_URL = SHORTLINK_URL
         stream_link = f"{JRMA_URL}/watch/{file_id}"
 
