@@ -3595,7 +3595,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
 #        content = ""
 
-        if query.message.reply_to_message:
+#        if query.message.reply_to_message:
 #            content = query.message.reply_to_message.text or ""
 #        content = query.message.reply_to_message.text
 
@@ -3606,13 +3606,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
 #        imdb = await get_poster(content) if IMDB and content else None
 #        poster = imdb.get("poster") if imdb else random.choice(PICS)
-
-        try:
-            vote_data = await get_file_votes(file_id)
-        except:
-            vote_data = {}
-
-        like_count = vote_data.get("like", 0)
 
         # 🟢 ചാനലിലേക്ക് ഫയൽ സെൻഡ് ചെയ്യുന്നു
         file_send = await client.send_cached_media(
