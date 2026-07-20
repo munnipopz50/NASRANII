@@ -3576,7 +3576,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
 
     elif query.data.startswith("modch#"):
-
         _, ident, file_id = query.data.split("#", 2)
 
         files_ = await get_file_details(file_id)
@@ -3588,11 +3587,9 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
         files = files_[0]
-
         title = files.file_name
         size = get_size(files.file_size)
-        content = query.message.reply_to_message.text
-
+        
         # 🟢 ചാനലിലേക്ക് ഫയൽ സെൻഡ് ചെയ്യുന്നു
         file_send = await client.send_cached_media(
             chat_id=FILE_CHANNEL,
@@ -3600,30 +3597,23 @@ async def cb_handler(client: Client, query: CallbackQuery):
             caption=script.CHANNEL_CAP.format(
                 query.from_user.mention,
                 title,
-                query.message.chat.title
+                query.message.chat.title or "Private Chat"
             ),
             protect_content=True if ident == "filep" else False
         )
 
-        # 📺 [JUSTRUNMY.APP STREAM LOGIC]
-        # നിങ്ങളുടെ JRMA ഡൊമെയ്ൻ വെച്ച് സ്ട്രീം ലിങ്ക് ജനറേറ്റ് ചെയ്യുന്നു
-#        import urllib.parse
-#        poster_encoded = urllib.parse.quote(poster)
         JRMA_URL = SHORTLINK_URL
         stream_link = f"{JRMA_URL}/watch/{file_id}"
-        # 📝 [CUSTOM CAPTION - WITH SPACES]
-        # യൂസർ നെയിം കഴിഞ്ഞൊരു സ്പേസും താഴെ ഫയൽ വിവരങ്ങളും നൽകുന്നു
-        custom_caption = (
-            f"👤 <b>User Name:</b> {query.from_user.mention}\n\n"
-            f"📂 <b>File Name:</b> <code>{title}</code>\n"
-            f"⚖️ <b>File Size:</b> {size}\n\n"
-            f"✨ <i>Enjoy your movie!</i>"
-        )
 
-       try:
-            s = await client.send_message(
+        # 🚀 യൂസർക്ക് അയക്കുന്ന മെസ്സേജ്
+        try:
+            await client.send_message(
                 chat_id=query.message.chat.id,                        
-                text=script.CHANNEL_CAP.format(query.from_user.mention, title, query.message.chat.title),
+                text=script.CHANNEL_CAP.format(
+                    query.from_user.mention, 
+                    title, 
+                    query.message.chat.title or "Private Chat"
+                ),
                 parse_mode=enums.ParseMode.HTML,
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("📺 Watch Online / Stream 📺", url=stream_link)],
@@ -3632,9 +3622,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
                 ])
             )
         except Exception as e:
-            print(f"Error sending message: {e}") # എറർ എന്താണെന്ന് അറിയാൻ സഹായിക്കും
+            print(f"Error sending message: {e}") 
+            await query.answer("Something went wrong!", show_alert=True)
 
         return await query.answer()
+
+
         
         
     elif query.data == "sendmarked":
