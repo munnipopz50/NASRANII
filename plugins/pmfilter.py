@@ -3607,8 +3607,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
         # 📺 [JUSTRUNMY.APP STREAM LOGIC]
         # നിങ്ങളുടെ JRMA ഡൊമെയ്ൻ വെച്ച് സ്ട്രീം ലിങ്ക് ജനറേറ്റ് ചെയ്യുന്നു
-        import urllib.parse
-        poster_encoded = urllib.parse.quote(poster)
+#        import urllib.parse
+#        poster_encoded = urllib.parse.quote(poster)
         JRMA_URL = SHORTLINK_URL
         stream_link = f"{JRMA_URL}/watch/{file_id}"
         # 📝 [CUSTOM CAPTION - WITH SPACES]
@@ -3623,7 +3623,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
        try:
             s = await client.send_message(
                 chat_id=query.message.chat.id,                        
-                text=caption=script.CHANNEL_CAP.format(query.from_user.mention, title, query.message.chat.title),
+                text=script.CHANNEL_CAP.format(query.from_user.mention, title, query.message.chat.title),
                 parse_mode=enums.ParseMode.HTML,
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("📺 Watch Online / Stream 📺", url=stream_link)],
