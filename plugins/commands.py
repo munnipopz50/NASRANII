@@ -69,51 +69,35 @@ from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, User, ChatJoinRequest
 
 
+TEXT = "ʜᴇʟʟᴏ {mention} ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟ. {title}\n\nᴏɴʟʏ ɴᴇᴡ ᴀɴᴅ ʟᴏᴡ ꜱɪᴢᴇ ᴍᴏᴠɪᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. ᴇɴᴊᴏʏɪɴɢ🔥🔥"
 
-pr0fess0r_99=Client(
-    "Auto Approved Bot",
-    bot_token = environ["BOT_TOKEN"],
-    api_id = int(environ["API_ID"]),
-    api_hash = environ["API_HASH"]
-)
+APPROVED = "on"
 
-# AUTH_CHANNEL സെറ്റ് ചെയ്തിട്ടില്ലെങ്കിൽ അത് ഒരു എംറ്റി ലിസ്റ്റ് ആയി കണക്കാക്കും
-raw_auth = environ.get("AUTH_CHANNEL")
-AUTH_CHANNEL = [int(x) for x in raw_auth.split()] if raw_auth else []
+@Client.on_chat_join_request(filters.chat(AUTH_CHANNEL))
+async def auto_approve(client, join_request):
+    try:
+        await join_request.approve()
 
+        if APPROVED == "on":
+            buttons = [[
+                InlineKeyboardButton(
+                    "🧩𝐉𝐎𝐈𝐍 𝐆𝐑𝐎𝐔𝐏🧩",
+                    url="https://t.me/nasrani_update"
+                )
+            ]]
 
-# AUTH_CHANNEL = [int(pr0fess0r_99) for pr0fess0r_99 in environ.get("AUTH_CHANNEL", None).split()]
-TEXT = environ.get("APPROVED_WELCOME_TEXT", "ʜᴇʟʟᴏ {mention} ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴍʏ ᴄʜᴀɴɴᴇʟ. {title}\n\nᴏɴʟʏ ɴᴇᴡ ᴀɴᴅ ʟᴏᴡ ꜱɪᴢᴇ ᴍᴏᴠɪᴇ ᴀᴠᴀɪʟᴀʙʟᴇ. ᴇɴᴊᴏʏɪɴɢ🔥🔥")
-APPROVED = environ.get("APPROVED_WELCOME", "on").lower()
+            await client.send_message(
+                chat_id=join_request.chat.id,
+                text=TEXT.format(
+                    mention=join_request.from_user.mention,
+                    title=join_request.chat.title
+                ),
+                reply_markup=InlineKeyboardMarkup(buttons),
+                parse_mode=enums.ParseMode.HTML
+            )
 
-@Client.on_message(filters.private & filters.command(["aprv"]))
-async def start(client: pr0fess0r_99, message: Message):
-    approvedbot = await client.get_me() 
-    button = [[ InlineKeyboardButton("📦 Repo", url="https://ttttt.me/MONEY_HIEST_ROBOT"), InlineKeyboardButton("Updates 📢", url="t.me/Mo_Tech_YT") ],
-              [ InlineKeyboardButton("➕️ Add Me To Your Chat ➕️", url=f"http://t.me/{approvedbot.username}?startgroup=botstart") ]]
-    await client.send_message(chat_id=message.chat.id, text=f"🥰{message.from_user.mention}🥰", reply_markup=InlineKeyboardMarkup(button), disable_web_page_preview=True)
-
-@Client.on_chat_join_request((filters.group | filters.channel) & filters.chat(AUTH_CHANNEL) if AUTH_CHANNEL else (filters.group | filters.channel))
-async def autoapprove(client: pr0fess0r_99, message: ChatJoinRequest):
-    
-    chat=message.chat # Chat
-    user=message.from_user # User
-    print(f"{user.first_name} Joined 🤝") # Logs
-    await client.approve_chat_join_request(chat_id=chat.id, user_id=user.id)
-    if APPROVED == "on":
-        
-        buttons = [[
-            InlineKeyboardButton('🧩𝐉𝐎𝐈𝐍 𝐆𝐑𝐎𝐔𝐏🧩', url=f'https://t.me/nasrani_update')
-            
-        ]]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        k = await client.send_message(chat_id=chat.id, text=TEXT.format(mention=user.mention, title=chat.title),
-        reply_markup=reply_markup,
-        parse_mode=enums.ParseMode.HTML
-        )
-        print("Welcome....")
-
-print("Auto Approved Bot")
+    except Exception as e:
+        print(e)
 
 
 
