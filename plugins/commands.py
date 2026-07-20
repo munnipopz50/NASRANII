@@ -85,40 +85,41 @@ TEXT = environ.get(
 
 APPROVED = environ.get("APPROVED_WELCOME", "on").lower()
 
-@Client.on_chat_join_request(
-    filters.chat(AUTH_CHANNEL) if AUTH_CHANNEL else (filters.group | filters.channel)
-)
-async def autoapprove(client: Client, message: ChatJoinRequest):
-    chat = message.chat
-    user = message.from_user
+@Client.on_chat_join_request((filters.group | filters.channel) & filters.chat(AUTH_CHANNEL) if AUTH_CHANNEL else (filters.group | filters.channel))
+async def autoapprove(client, message: ChatJoinRequest):
+
+    chat = message.chat          # Chat object
+    user = message.from_user     # User object
 
     print(f"{user.first_name} Joined 🤝")
 
-    try:
-        await message.approve()
+    await client.approve_chat_join_request(
+        chat_id=chat.id,
+        user_id=user.id
+    )
 
-        if APPROVED == "on":
-            buttons = [[
-                InlineKeyboardButton(
-                    "🧩𝐉𝐎𝐈𝐍 𝐆𝐑𝐎𝐔𝐏🧩",
-                    url="https://t.me/nasrani_update"
-                )
-            ]]
+    if APPROVED == "on":
 
-            await client.send_message(
-                chat_id=chat.id,
-                text=TEXT.format(
-                    mention=user.mention,
-                    title=chat.title
-                ),
-                reply_markup=InlineKeyboardMarkup(buttons),
-                parse_mode=enums.ParseMode.HTML
+        buttons = [[
+            InlineKeyboardButton(
+                '🧩𝐉𝐎𝐈𝐍 𝐆𝐑𝐎𝐔𝐏🧩',
+                url='https://t.me/nasrani_update'
             )
+        ]]
 
-            print("Welcome message sent.")
+        reply_markup = InlineKeyboardMarkup(buttons)
 
-    except Exception as e:
-        print(f"Auto approve error: {e}")
+        await client.send_message(
+            chat_id=AUTH_CHANNEL,
+            text=TEXT.format(
+                mention=user.mention,
+                title=chat.title
+            ),
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML
+        )
+
+        print("Welcome....")
 
 
 
