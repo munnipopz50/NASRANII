@@ -265,6 +265,37 @@ async def self_destruct_message(message, delay):
     except:
         pass
 
+
+
+
+def clean_movie_name(title):
+    # 1. @ ഉപയോഗിച്ച് തുടങ്ങുന്ന ചാനൽ പേരുകൾ, [KML] പോലുള്ള ടാഗുകൾ ഒഴിവാക്കുന്നു
+    title = re.sub(r'(@\w+|\[.*?\])', '', title)
+    
+    # 2. സീസൺ/എപ്പിസോഡ് പാറ്റേൺ (S01E02) ഉണ്ടെങ്കിൽ അത് നീക്കം ചെയ്യുന്നു
+    title = re.sub(r'S\d{2}E\d{2}', '', title, flags=re.IGNORECASE)
+    
+    # 3. വർഷം കണ്ടെത്താൻ ശ്രമിക്കുന്നു (1999, 2021 മുതലായവ)
+    year_match = re.search(r'\(?(\d{4})\)?', title)
+    
+    if year_match:
+        # വർഷം ഉണ്ടെങ്കിൽ വർഷത്തിന് മുൻപുള്ള ഭാഗം എടുക്കുന്നു
+        movie_name = title.split(year_match.group(0))[0]
+        # ഒപ്പം വർഷം കൂടി ചേർത്ത് തിരിച്ചയക്കുന്നു
+        return f"{movie_name.strip()} {year_match.group(1)}"
+    else:
+        # വർഷം ഇല്ലെങ്കിൽ, ഫയൽ നാമത്തിലെ ആദ്യത്തെ പ്രധാന ഭാഗം മാത്രം എടുക്കുന്നു
+        # (സാധാരണയായി ക്വാളിറ്റി ടാഗുകൾ തുടങ്ങുന്നതിന് മുൻപുള്ള ഭാഗം)
+        # ഒരു താൽക്കാലിക രീതിയിൽ കുറച്ചു വാക്കുകൾ മാത്രം എടുക്കുന്നു
+        parts = re.split(r'(?i)(720p|480p|1080p|DVDRip|Bluray|WEBRip|x264|mkv)', title)
+        return parts[0].strip()
+
+
+
+
+
+
+
 # Progress simulation function
 async def show_progress(message, search, steps=5, delay=0.5):
     progress_symbols = ['▏','▎','▍','▌','▋','▊','▉','█']
@@ -2321,7 +2352,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
         )
         
         # 📺 title വെച്ച് പോസ്റ്റർ സെർച്ച് ചെയ്യുന്നു (ഒറിജിനൽ മാത്രം)
-        imdb = await get_poster(title) if IMDB else None
+        # ഉപയോഗിക്കേണ്ട രീതി:
+        clean_title = clean_movie_name(title)
+        print(f"CLEANED: {clean_title}")
+        imdb = await get_poster(clean_title) if IMDB else None
+
 
         JRMA_URL = SHORTLINK_URL
         stream_link = f"{JRMA_URL}/watch/{file_id}"
