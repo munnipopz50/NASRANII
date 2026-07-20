@@ -38,6 +38,8 @@ from info import *
 import aiohttp
 from plugins.index import resume_index_jobs
 from plugins.index import index_files_to_db, resume_col
+import plugins.sticker
+print("MANUAL IMPORT SUCCESS")
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ➕ [ADDITIONS FOR FIXING WEB PLAYER STREAMING]
